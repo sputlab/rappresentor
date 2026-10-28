@@ -4,6 +4,15 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.3.4] - 2026-10-28
+### Corretto
+- **Scorrimento Verticale Modali (Nuovo Alunno & Form)**: risolto il blocco dello scorrimento nei modali con form estesi (come *Nuovo Alunno* in `alunni.php` contenente dati studente, note, allergie e recapiti famiglia).
+- Configurato `display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;` per il tag `<form>` all'interno dei modali, trasmettendo correttamente il vincolo di altezza del contenitore a `.modal-body`.
+- Aggiunto `min-height: 0;`, `flex: 1 1 auto;`, `-webkit-overflow-scrolling: touch;` e `overscroll-behavior: contain;` a `.modal-body` per garantire uno scorrimento fluido inerziale su iOS/Android e desktop.
+- Fissato il `.modal-footer` (`flex-shrink: 0`) in fondo con supporto alla safe area (`env(safe-area-inset-bottom)`), garantendo che i pulsanti di azione ("Annulla" e "Salva") rimangano sempre visibili e raggiungibili.
+- Implementata la chiusura dei modali con il tasto `Escape`, il riposizionamento dello scroll in cima all'apertura e il focus automatico sul primo campo.
+- Aggiunto il versioning cache-busting per gli asset CSS e JS (`?v=0.3.4`) e aggiornata la cache del Service Worker.
+
 ## [0.3.3] - 2026-10-28
 ### Corretto
 - **Headers Already Sent e Flusso Redirect**: risolto l'errore `Warning: Cannot modify header information - headers already sent by .../includes/header.php` durante i salvataggi e redirect HTTP (ad es. in `impostazioni.php`, `alunni.php`, `cassa.php`, `utenti.php`, `classi.php`, `calendario.php`, `consigli.php`, `comunicazioni.php`).

@@ -29,6 +29,6 @@
 <!-- Backdrop per Drawer Mobile -->
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-<script src="assets/js/app.js"></script>
+<script src="assets/js/app.js?v=<?= \Rappresentor\Core\Helper::getAppVersion() ?>"></script>
 </body>
 </html>

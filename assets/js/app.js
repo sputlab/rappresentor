@@ -84,6 +84,16 @@ function initModals() {
       }
     });
   });
+
+  // Chiusura con tasto Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const activeModal = document.querySelector('.modal-backdrop.active');
+      if (activeModal) {
+        closeModal(activeModal.id);
+      }
+    }
+  });
 }
 
 function openModal(modalId) {
@@ -91,6 +101,18 @@ function openModal(modalId) {
   if (modal) {
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
+
+    // Riporta lo scroll in cima all'apertura del modale
+    const modalBody = modal.querySelector('.modal-body');
+    if (modalBody) {
+      modalBody.scrollTop = 0;
+    }
+
+    // Autofocus sul primo campo utile
+    const firstInput = modal.querySelector('input:not([type="hidden"]), select, textarea');
+    if (firstInput) {
+      setTimeout(() => firstInput.focus(), 80);
+    }
   }
 }
 
@@ -98,7 +120,9 @@ function closeModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
     modal.classList.remove('active');
-    document.body.style.overflow = '';
+    if (!document.querySelector('.modal-backdrop.active')) {
+      document.body.style.overflow = '';
+    }
   }
 }
 

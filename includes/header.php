@@ -36,7 +36,7 @@ $currentScript = basename($_SERVER['PHP_SELF']);
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Rappresentor">
 
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/style.css?v=<?= Helper::e($appVersion) ?>">
 </head>
 <body>
 <div class="app-wrapper">

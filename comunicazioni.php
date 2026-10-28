@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 
-$pageTitle = 'Bacheca & Messaggi WhatsApp';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/init.php';
 
+use Rappresentor\Core\Auth;
 use Rappresentor\Core\Helper;
 
-if (!$activeClassId) {
-    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
-    require_once __DIR__ . '/includes/footer.php';
-    exit;
-}
+Auth::requireAuth('login.php');
+
+$currentUser = Auth::user();
+$activeClass = Helper::getActiveClass($db);
+$activeClassId = $activeClass['id'] ?? null;
 
 // Gestione aggiunta nuovo template personalizzato
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_template') {
@@ -36,34 +36,42 @@ $templates = $db->query("SELECT * FROM rappresentor_templates ORDER BY is_defaul
 
 // Dati dinamici classe attiva per sostituzione automatica variabili
 $className = $activeClass['name'] ?? 'Classe';
+$saldo = 0.0;
+$usciteText = "Nessuna spesa recente registrata.";
+$quotaTitle = 'Cassa Comune';
+$quotaAmount = '10,00';
+$quotaDeadline = 'prossima settimana';
 
-// Saldo e ultime uscite
-$stmt = $db->prepare("SELECT 
-    COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
-    COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
-    FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
-$stmt->execute(['cid' => $activeClassId]);
-$cash = $stmt->fetch();
-$saldo = (float)($cash['total_entrate'] ?? 0) - (float)($cash['total_uscite'] ?? 0);
+if ($activeClassId) {
+    // Saldo e ultime uscite
+    $stmt = $db->prepare("SELECT 
+        COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
+        COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
+        FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
+    $stmt->execute(['cid' => $activeClassId]);
+    $cash = $stmt->fetch();
+    $saldo = (float)($cash['total_entrate'] ?? 0) - (float)($cash['total_uscite'] ?? 0);
 
-$stmt = $db->prepare("SELECT transaction_date, description, amount FROM rappresentor_cashbox_transactions WHERE class_id = :cid AND type = 'uscita' ORDER BY transaction_date DESC, id DESC LIMIT 4");
-$stmt->execute(['cid' => $activeClassId]);
-$recentExpenses = $stmt->fetchAll();
-$usciteText = "";
-foreach ($recentExpenses as $exp) {
-    $usciteText .= "- " . Helper::formatDate($exp['transaction_date']) . ": " . $exp['description'] . " (" . Helper::formatMoney($exp['amount']) . ")\n";
+    $stmt = $db->prepare("SELECT transaction_date, description, amount FROM rappresentor_cashbox_transactions WHERE class_id = :cid AND type = 'uscita' ORDER BY transaction_date DESC, id DESC LIMIT 4");
+    $stmt->execute(['cid' => $activeClassId]);
+    $recentExpenses = $stmt->fetchAll();
+    if (!empty($recentExpenses)) {
+        $usciteText = "";
+        foreach ($recentExpenses as $exp) {
+            $usciteText .= "- " . Helper::formatDate($exp['transaction_date']) . ": " . $exp['description'] . " (" . Helper::formatMoney($exp['amount']) . ")\n";
+        }
+    }
+
+    // Ultima campagna quote attiva
+    $stmt = $db->prepare("SELECT * FROM rappresentor_campaigns WHERE class_id = :cid AND is_closed = 0 ORDER BY id DESC LIMIT 1");
+    $stmt->execute(['cid' => $activeClassId]);
+    $latestCampaign = $stmt->fetch();
+    if ($latestCampaign) {
+        $quotaTitle = $latestCampaign['title'] ?? 'Cassa Comune';
+        $quotaAmount = $latestCampaign['quota_per_student'] ? number_format((float)$latestCampaign['quota_per_student'], 2, ',', '.') : '10,00';
+        $quotaDeadline = $latestCampaign['deadline'] ? Helper::formatDate($latestCampaign['deadline']) : 'prossima settimana';
+    }
 }
-if (empty($usciteText)) {
-    $usciteText = "Nessuna spesa recente registrata.";
-}
-
-// Ultima campagna quote attiva
-$stmt = $db->prepare("SELECT * FROM rappresentor_campaigns WHERE class_id = :cid AND is_closed = 0 ORDER BY id DESC LIMIT 1");
-$stmt->execute(['cid' => $activeClassId]);
-$latestCampaign = $stmt->fetch();
-$quotaTitle = $latestCampaign['title'] ?? 'Cassa Comune';
-$quotaAmount = $latestCampaign['quota_per_student'] ? number_format((float)$latestCampaign['quota_per_student'], 2, ',', '.') : '10,00';
-$quotaDeadline = $latestCampaign['deadline'] ? Helper::formatDate($latestCampaign['deadline']) : 'prossima settimana';
 
 // Template selezionato da visualizzare
 $selectedTplId = isset($_GET['tpl']) ? (int)$_GET['tpl'] : ($templates[0]['id'] ?? 0);
@@ -93,8 +101,17 @@ if ($selectedTemplate) {
         '{DATA_EVENTO}' => 'Giovedì ' . date('d/m/Y', strtotime('+7 days')),
         '{ORA_EVENTO}' => '17:00',
         '{LUOGO}' => 'Presso i locali della scuola / Aula Magna',
-        '{DESCRIZIONE_EVENTO}' => '- Andamento didattico della classe\n- Programmazione uscite e visite guidate\n- Varie ed eventuali'
+        '{DESCRIZIONE_EVENTO}' => "- Andamento didattico della classe\n- Programmazione uscite e visite guidate\n- Varie ed eventuali"
     ]);
+}
+
+$pageTitle = 'Bacheca & Messaggi WhatsApp';
+require_once __DIR__ . '/includes/header.php';
+
+if (!$activeClassId) {
+    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
+    require_once __DIR__ . '/includes/footer.php';
+    exit;
 }
 ?>
 

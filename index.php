@@ -1,10 +1,19 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/includes/init.php';
+
+use Rappresentor\Core\Auth;
+use Rappresentor\Core\Helper;
+
+Auth::requireAuth('login.php');
+
+$currentUser = Auth::user();
+$activeClass = Helper::getActiveClass($db);
+$activeClassId = $activeClass['id'] ?? null;
+
 $pageTitle = 'Dashboard';
 require_once __DIR__ . '/includes/header.php';
-
-use Rappresentor\Core\Helper;
 
 if (!$activeClassId) {
     // Nessuna classe presente, invita a crearne una

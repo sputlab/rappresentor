@@ -1,10 +1,14 @@
 <?php
 declare(strict_types=1);
 
-$pageTitle = 'Gestione Classi';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/init.php';
 
+use Rappresentor\Core\Auth;
 use Rappresentor\Core\Helper;
+
+Auth::requireAuth('login.php');
+
+$currentUser = Auth::user();
 
 // Gestione Azioni POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -57,6 +61,9 @@ $stmt = $db->query("SELECT c.*,
     (SELECT COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE -amount END), 0) FROM rappresentor_cashbox_transactions ct WHERE ct.class_id = c.id) as saldo
     FROM rappresentor_classes c ORDER BY c.is_archived ASC, c.school_year DESC, c.name ASC");
 $classesList = $stmt->fetchAll();
+
+$pageTitle = 'Gestione Classi';
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="page-header">

@@ -1,17 +1,16 @@
 <?php
 declare(strict_types=1);
 
-$pageTitle = 'Cassa & Quote';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/init.php';
 
-use Rappresentor\Core\Helper;
 use Rappresentor\Core\Auth;
+use Rappresentor\Core\Helper;
 
-if (!$activeClassId) {
-    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
-    require_once __DIR__ . '/includes/footer.php';
-    exit;
-}
+Auth::requireAuth('login.php');
+
+$currentUser = Auth::user();
+$activeClass = Helper::getActiveClass($db);
+$activeClassId = $activeClass['id'] ?? null;
 
 // Gestione Azioni POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -21,187 +20,209 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // 1. Nuova Campagna di Raccolta Quote
-    if ($_POST['action'] === 'add_campaign') {
-        $title = trim($_POST['title'] ?? '');
-        $description = trim($_POST['description'] ?? '');
-        $quota = (float)str_replace(',', '.', $_POST['quota_per_student'] ?? '0');
-        $deadline = !empty($_POST['deadline']) ? $_POST['deadline'] : null;
+    if ($activeClassId) {
+        // 1. Nuova Campagna di Raccolta Quote
+        if ($_POST['action'] === 'add_campaign') {
+            $title = trim($_POST['title'] ?? '');
+            $description = trim($_POST['description'] ?? '');
+            $quota = (float)str_replace(',', '.', $_POST['quota_per_student'] ?? '0');
+            $deadline = !empty($_POST['deadline']) ? $_POST['deadline'] : null;
 
-        if (empty($title) || $quota <= 0) {
-            Helper::setFlash('danger', 'Titolo della raccolta e quota valida sono obbligatori.');
-        } else {
-            $stmt = $db->prepare("INSERT INTO rappresentor_campaigns (class_id, title, description, quota_per_student, deadline) VALUES (:cid, :ti, :de, :qu, :dl)");
-            $stmt->execute([
-                'cid' => $activeClassId,
-                'ti' => $title,
-                'de' => $description,
-                'qu' => $quota,
-                'dl' => $deadline
-            ]);
-            $campaignId = (int)$db->lastInsertId();
+            if (empty($title) || $quota <= 0) {
+                Helper::setFlash('danger', 'Titolo della raccolta e quota valida sono obbligatori.');
+            } else {
+                $stmt = $db->prepare("INSERT INTO rappresentor_campaigns (class_id, title, description, quota_per_student, deadline) VALUES (:cid, :ti, :de, :qu, :dl)");
+                $stmt->execute([
+                    'cid' => $activeClassId,
+                    'ti' => $title,
+                    'de' => $description,
+                    'qu' => $quota,
+                    'dl' => $deadline
+                ]);
+                $campaignId = (int)$db->lastInsertId();
 
-            // Inizializza riga di pagamento per tutti gli alunni attivi della classe
-            $stmtStu = $db->prepare("SELECT id FROM rappresentor_students WHERE class_id = :cid AND is_active = 1");
-            $stmtStu->execute(['cid' => $activeClassId]);
-            $students = $stmtStu->fetchAll();
+                // Inizializza riga di pagamento per tutti gli alunni attivi della classe
+                $stmtStu = $db->prepare("SELECT id FROM rappresentor_students WHERE class_id = :cid AND is_active = 1");
+                $stmtStu->execute(['cid' => $activeClassId]);
+                $students = $stmtStu->fetchAll();
 
-            $insertPay = $db->prepare("INSERT INTO rappresentor_payments (campaign_id, student_id, status, amount_paid) VALUES (:cid, :sid, 'non_pagato', 0.00)");
-            foreach ($students as $s) {
-                $insertPay->execute(['cid' => $campaignId, 'sid' => $s['id']]);
+                $insertPay = $db->prepare("INSERT INTO rappresentor_payments (campaign_id, student_id, status, amount_paid) VALUES (:cid, :sid, 'non_pagato', 0.00)");
+                foreach ($students as $s) {
+                    $insertPay->execute(['cid' => $campaignId, 'sid' => $s['id']]);
+                }
+
+                Helper::setFlash('success', "Raccolta quote '{$title}' creata con successo per tutti gli alunni!");
+                header("Location: cassa.php?campaign_id={$campaignId}");
+                exit;
             }
+        }
 
-            Helper::setFlash('success', "Raccolta quote '{$title}' creata con successo per tutti gli alunni!");
+        // 2. Nuovo Movimento Cassa (Entrata / Uscita)
+        if ($_POST['action'] === 'add_transaction') {
+            $type = $_POST['type'] ?? 'uscita';
+            $amount = (float)str_replace(',', '.', $_POST['amount'] ?? '0');
+            $category = trim($_POST['category'] ?? 'Varie');
+            $description = trim($_POST['description'] ?? '');
+            $date = !empty($_POST['transaction_date']) ? $_POST['transaction_date'] : date('Y-m-d');
+            $receipt = trim($_POST['receipt_ref'] ?? '');
+            $campaignId = !empty($_POST['campaign_id']) ? (int)$_POST['campaign_id'] : null;
+
+            if ($amount <= 0 || empty($description)) {
+                Helper::setFlash('danger', 'Importo e descrizione sono obbligatori.');
+            } else {
+                $stmt = $db->prepare("INSERT INTO rappresentor_cashbox_transactions (class_id, campaign_id, type, amount, category, description, transaction_date, receipt_ref, created_by) 
+                    VALUES (:cid, :cmp, :ty, :am, :cat, :de, :td, :rc, :cb)");
+                $stmt->execute([
+                    'cid' => $activeClassId,
+                    'cmp' => $campaignId,
+                    'ty' => $type,
+                    'am' => $amount,
+                    'cat' => $category,
+                    'de' => $description,
+                    'td' => $date,
+                    'rc' => $receipt,
+                    'cb' => Auth::id()
+                ]);
+                Helper::setFlash('success', 'Movimento registrato con successo nel libro cassa!');
+                header('Location: cassa.php');
+                exit;
+            }
+        }
+
+        // 3. Aggiornamento Singolo Pagamento Alunno (versione form standard)
+        if ($_POST['action'] === 'update_single_payment') {
+            $paymentId = (int)($_POST['payment_id'] ?? 0);
+            $campaignId = (int)($_POST['campaign_id'] ?? 0);
+            $status = $_POST['status'] ?? 'non_pagato';
+            $amount = (float)str_replace(',', '.', $_POST['amount_paid'] ?? '0');
+            $method = $_POST['payment_method'] ?? 'contanti';
+            $notes = trim($_POST['notes'] ?? '');
+            $paidAt = ($status === 'pagato') ? date('Y-m-d') : null;
+
+            $stmt = $db->prepare("UPDATE rappresentor_payments SET status = :st, amount_paid = :am, payment_method = :pm, paid_at = :pa, notes = :nt WHERE id = :id");
+            $stmt->execute([
+                'st' => $status,
+                'am' => $amount,
+                'pm' => $method,
+                'pa' => $paidAt,
+                'nt' => $notes,
+                'id' => $paymentId
+            ]);
+
+            Helper::setFlash('success', 'Pagamento aggiornato.');
+            header("Location: cassa.php?campaign_id={$campaignId}");
+            exit;
+        }
+
+        // 4. Chiusura / Riapertura Campagna
+        if ($_POST['action'] === 'toggle_campaign_status') {
+            $campaignId = (int)($_POST['campaign_id'] ?? 0);
+            $isClosed = (int)($_POST['is_closed'] ?? 0);
+            $stmt = $db->prepare("UPDATE rappresentor_campaigns SET is_closed = :cl WHERE id = :id AND class_id = :cid");
+            $stmt->execute(['cl' => $isClosed, 'id' => $campaignId, 'cid' => $activeClassId]);
+            Helper::setFlash('info', 'Stato raccolta aggiornato.');
             header("Location: cassa.php?campaign_id={$campaignId}");
             exit;
         }
     }
-
-    // 2. Nuovo Movimento Cassa (Entrata / Uscita)
-    if ($_POST['action'] === 'add_transaction') {
-        $type = $_POST['type'] ?? 'uscita';
-        $amount = (float)str_replace(',', '.', $_POST['amount'] ?? '0');
-        $category = trim($_POST['category'] ?? 'Varie');
-        $description = trim($_POST['description'] ?? '');
-        $date = !empty($_POST['transaction_date']) ? $_POST['transaction_date'] : date('Y-m-d');
-        $receipt = trim($_POST['receipt_ref'] ?? '');
-        $campaignId = !empty($_POST['campaign_id']) ? (int)$_POST['campaign_id'] : null;
-
-        if ($amount <= 0 || empty($description)) {
-            Helper::setFlash('danger', 'Importo e descrizione sono obbligatori.');
-        } else {
-            $stmt = $db->prepare("INSERT INTO rappresentor_cashbox_transactions (class_id, campaign_id, type, amount, category, description, transaction_date, receipt_ref, created_by) 
-                VALUES (:cid, :cmp, :ty, :am, :cat, :de, :td, :rc, :cb)");
-            $stmt->execute([
-                'cid' => $activeClassId,
-                'cmp' => $campaignId,
-                'ty' => $type,
-                'am' => $amount,
-                'cat' => $category,
-                'de' => $description,
-                'td' => $date,
-                'rc' => $receipt,
-                'cb' => Auth::id()
-            ]);
-            Helper::setFlash('success', 'Movimento registrato con successo nel libro cassa!');
-            header('Location: cassa.php');
-            exit;
-        }
-    }
-
-    // 3. Aggiornamento Singolo Pagamento Alunno (versione form standard)
-    if ($_POST['action'] === 'update_single_payment') {
-        $paymentId = (int)($_POST['payment_id'] ?? 0);
-        $campaignId = (int)($_POST['campaign_id'] ?? 0);
-        $status = $_POST['status'] ?? 'non_pagato';
-        $amount = (float)str_replace(',', '.', $_POST['amount_paid'] ?? '0');
-        $method = $_POST['payment_method'] ?? 'contanti';
-        $notes = trim($_POST['notes'] ?? '');
-        $paidAt = ($status === 'pagato') ? date('Y-m-d') : null;
-
-        $stmt = $db->prepare("UPDATE rappresentor_payments SET status = :st, amount_paid = :am, payment_method = :pm, paid_at = :pa, notes = :nt WHERE id = :id");
-        $stmt->execute([
-            'st' => $status,
-            'am' => $amount,
-            'pm' => $method,
-            'pa' => $paidAt,
-            'nt' => $notes,
-            'id' => $paymentId
-        ]);
-
-        Helper::setFlash('success', 'Pagamento aggiornato.');
-        header("Location: cassa.php?campaign_id={$campaignId}");
-        exit;
-    }
-
-    // 4. Chiusura / Riapertura Campagna
-    if ($_POST['action'] === 'toggle_campaign_status') {
-        $campaignId = (int)($_POST['campaign_id'] ?? 0);
-        $isClosed = (int)($_POST['is_closed'] ?? 0);
-        $stmt = $db->prepare("UPDATE rappresentor_campaigns SET is_closed = :cl WHERE id = :id AND class_id = :cid");
-        $stmt->execute(['cl' => $isClosed, 'id' => $campaignId, 'cid' => $activeClassId]);
-        Helper::setFlash('info', 'Stato raccolta aggiornato.');
-        header("Location: cassa.php?campaign_id={$campaignId}");
-        exit;
-    }
 }
 
-// 1. Calcolo Saldo Cassa Totale
-$stmt = $db->prepare("SELECT 
-    COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
-    COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
-    FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
-$stmt->execute(['cid' => $activeClassId]);
-$cashSummary = $stmt->fetch();
-$totalEntrate = (float)$cashSummary['total_entrate'];
-$totalUscite = (float)$cashSummary['total_uscite'];
-$saldoCassa = $totalEntrate - $totalUscite;
-
-// 2. Carica Campagne Quote
-$stmt = $db->prepare("SELECT c.*, 
-    (SELECT COUNT(*) FROM rappresentor_payments p WHERE p.campaign_id = c.id AND p.status = 'pagato') as pagati_count,
-    (SELECT COUNT(*) FROM rappresentor_payments p WHERE p.campaign_id = c.id) as totale_alunni,
-    (SELECT COALESCE(SUM(amount_paid), 0) FROM rappresentor_payments p WHERE p.campaign_id = c.id) as totale_raccolto
-    FROM rappresentor_campaigns c 
-    WHERE c.class_id = :cid 
-    ORDER BY c.is_closed ASC, c.id DESC");
-$stmt->execute(['cid' => $activeClassId]);
-$campaigns = $stmt->fetchAll();
-
-// Campagna selezionata
-$selectedCampaignId = isset($_GET['campaign_id']) ? (int)$_GET['campaign_id'] : ($campaigns[0]['id'] ?? 0);
+// Dati Cassa e Campagne
+$totalEntrate = 0.0;
+$totalUscite = 0.0;
+$saldoCassa = 0.0;
+$campaigns = [];
+$selectedCampaignId = 0;
 $selectedCampaign = null;
 $campaignPayments = [];
+$transactions = [];
+$rendicontoWa = '';
 
-if ($selectedCampaignId > 0) {
-    foreach ($campaigns as $camp) {
-        if ((int)$camp['id'] === $selectedCampaignId) {
-            $selectedCampaign = $camp;
-            break;
+if ($activeClassId) {
+    // 1. Calcolo Saldo Cassa Totale
+    $stmt = $db->prepare("SELECT 
+        COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
+        COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
+        FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
+    $stmt->execute(['cid' => $activeClassId]);
+    $cashSummary = $stmt->fetch();
+    $totalEntrate = (float)($cashSummary['total_entrate'] ?? 0);
+    $totalUscite = (float)($cashSummary['total_uscite'] ?? 0);
+    $saldoCassa = $totalEntrate - $totalUscite;
+
+    // 2. Carica Campagne Quote
+    $stmt = $db->prepare("SELECT c.*, 
+        (SELECT COUNT(*) FROM rappresentor_payments p WHERE p.campaign_id = c.id AND p.status = 'pagato') as pagati_count,
+        (SELECT COUNT(*) FROM rappresentor_payments p WHERE p.campaign_id = c.id) as totale_alunni,
+        (SELECT COALESCE(SUM(amount_paid), 0) FROM rappresentor_payments p WHERE p.campaign_id = c.id) as totale_raccolto
+        FROM rappresentor_campaigns c 
+        WHERE c.class_id = :cid 
+        ORDER BY c.is_closed ASC, c.id DESC");
+    $stmt->execute(['cid' => $activeClassId]);
+    $campaigns = $stmt->fetchAll();
+
+    // Campagna selezionata
+    $selectedCampaignId = isset($_GET['campaign_id']) ? (int)$_GET['campaign_id'] : ($campaigns[0]['id'] ?? 0);
+
+    if ($selectedCampaignId > 0) {
+        foreach ($campaigns as $camp) {
+            if ((int)$camp['id'] === $selectedCampaignId) {
+                $selectedCampaign = $camp;
+                break;
+            }
+        }
+
+        if ($selectedCampaign) {
+            // Carica elenco alunni e relativo pagamento per la campagna
+            $stmt = $db->prepare("SELECT p.*, s.first_name, s.last_name 
+                FROM rappresentor_payments p 
+                JOIN rappresentor_students s ON p.student_id = s.id 
+                WHERE p.campaign_id = :cmp AND s.is_active = 1 
+                ORDER BY s.last_name ASC, s.first_name ASC");
+            $stmt->execute(['cmp' => $selectedCampaignId]);
+            $campaignPayments = $stmt->fetchAll();
         }
     }
 
-    if ($selectedCampaign) {
-        // Carica elenco alunni e relativo pagamento per la campagna
-        $stmt = $db->prepare("SELECT p.*, s.first_name, s.last_name 
-            FROM rappresentor_payments p 
-            JOIN rappresentor_students s ON p.student_id = s.id 
-            WHERE p.campaign_id = :cmp AND s.is_active = 1 
-            ORDER BY s.last_name ASC, s.first_name ASC");
-        $stmt->execute(['cmp' => $selectedCampaignId]);
-        $campaignPayments = $stmt->fetchAll();
+    // 3. Movimenti Registro Cassa Recenti
+    $stmt = $db->prepare("SELECT ct.*, u.name as user_name 
+        FROM rappresentor_cashbox_transactions ct 
+        LEFT JOIN rappresentor_users u ON ct.created_by = u.id 
+        WHERE ct.class_id = :cid 
+        ORDER BY ct.transaction_date DESC, ct.id DESC LIMIT 50");
+    $stmt->execute(['cid' => $activeClassId]);
+    $transactions = $stmt->fetchAll();
+
+    // Costruisci testo rendiconto cassa WhatsApp
+    $rendicontoWa = "📊 *RENDICONTO CASSA DI CLASSE*\n";
+    $rendicontoWa .= "🏫 " . ($activeClass['name'] ?? 'Classe') . " - A.S. " . ($activeClass['school_year'] ?? '') . "\n";
+    $rendicontoWa .= "📅 Aggiornato al: " . date('d/m/Y') . "\n\n";
+    $rendicontoWa .= "💰 *SALDO ATTUALE:* " . Helper::formatMoney($saldoCassa) . "\n";
+    $rendicontoWa .= "📥 Totale Entrate: " . Helper::formatMoney($totalEntrate) . "\n";
+    $rendicontoWa .= "📤 Totale Uscite: " . Helper::formatMoney($totalUscite) . "\n\n";
+    $rendicontoWa .= "*Ultime uscite registrate:*\n";
+
+    $recentUsciteCount = 0;
+    foreach ($transactions as $t) {
+        if ($t['type'] === 'uscita' && $recentUsciteCount < 5) {
+            $rendicontoWa .= "- " . Helper::formatDate($t['transaction_date']) . ": " . Helper::e($t['description']) . " (" . Helper::formatMoney($t['amount']) . ")\n";
+            $recentUsciteCount++;
+        }
     }
-}
-
-// 3. Movimenti Registro Cassa Recenti
-$stmt = $db->prepare("SELECT ct.*, u.name as user_name 
-    FROM rappresentor_cashbox_transactions ct 
-    LEFT JOIN rappresentor_users u ON ct.created_by = u.id 
-    WHERE ct.class_id = :cid 
-    ORDER BY ct.transaction_date DESC, ct.id DESC LIMIT 50");
-$stmt->execute(['cid' => $activeClassId]);
-$transactions = $stmt->fetchAll();
-
-// Costruisci testo rendiconto cassa WhatsApp
-$rendicontoWa = "📊 *RENDICONTO CASSA DI CLASSE*\n";
-$rendicontoWa .= "🏫 " . ($activeClass['name'] ?? 'Classe') . " - A.S. " . ($activeClass['school_year'] ?? '') . "\n";
-$rendicontoWa .= "📅 Aggiornato al: " . date('d/m/Y') . "\n\n";
-$rendicontoWa .= "💰 *SALDO ATTUALE:* " . Helper::formatMoney($saldoCassa) . "\n";
-$rendicontoWa .= "📥 Totale Entrate: " . Helper::formatMoney($totalEntrate) . "\n";
-$rendicontoWa .= "📤 Totale Uscite: " . Helper::formatMoney($totalUscite) . "\n\n";
-$rendicontoWa .= "*Ultime uscite registrate:*\n";
-
-$recentUsciteCount = 0;
-foreach ($transactions as $t) {
-    if ($t['type'] === 'uscita' && $recentUsciteCount < 5) {
-        $rendicontoWa .= "- " . Helper::formatDate($t['transaction_date']) . ": " . Helper::e($t['description']) . " (" . Helper::formatMoney($t['amount']) . ")\n";
-        $recentUsciteCount++;
+    if ($recentUsciteCount === 0) {
+        $rendicontoWa .= "Nessuna spesa recente.\n";
     }
+    $rendicontoWa .= "\nI giustificativi e scontrini sono sempre disponibili per consultazione. Grazie a tutti i genitori!";
 }
-if ($recentUsciteCount === 0) {
-    $rendicontoWa .= "Nessuna spesa recente.\n";
+
+$pageTitle = 'Cassa & Quote';
+require_once __DIR__ . '/includes/header.php';
+
+if (!$activeClassId) {
+    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
+    require_once __DIR__ . '/includes/footer.php';
+    exit;
 }
-$rendicontoWa .= "\nI giustificativi e scontrini sono sempre disponibili per consultazione. Grazie a tutti i genitori!";
 ?>
 
 <div class="page-header">

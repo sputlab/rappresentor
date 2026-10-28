@@ -1,23 +1,23 @@
 <?php
 declare(strict_types=1);
 
-$pageTitle = 'Scadenze & Eventi';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/init.php';
 
+use Rappresentor\Core\Auth;
 use Rappresentor\Core\Helper;
 
-if (!$activeClassId) {
-    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
-    require_once __DIR__ . '/includes/footer.php';
-    exit;
-}
+Auth::requireAuth('login.php');
+
+$currentUser = Auth::user();
+$activeClass = Helper::getActiveClass($db);
+$activeClassId = $activeClass['id'] ?? null;
 
 // Gestione aggiunta nuovo evento
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!Helper::verifyCsrf()) {
         Helper::setFlash('danger', 'Richiesta non valida.');
     } else {
-        if ($_POST['action'] === 'add_event') {
+        if ($activeClassId && $_POST['action'] === 'add_event') {
             $title = trim($_POST['title'] ?? '');
             $type = $_POST['event_type'] ?? 'riunione';
             $date = !empty($_POST['event_date']) ? $_POST['event_date'] : null;
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
 
-        if ($_POST['action'] === 'delete_event') {
+        if ($activeClassId && $_POST['action'] === 'delete_event') {
             $eventId = (int)($_POST['event_id'] ?? 0);
             $stmt = $db->prepare("DELETE FROM rappresentor_events WHERE id = :id AND class_id = :cid");
             $stmt->execute(['id' => $eventId, 'cid' => $activeClassId]);
@@ -56,20 +56,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Carica eventi futuri e passati
-$stmt = $db->prepare("SELECT * FROM rappresentor_events WHERE class_id = :cid AND event_date >= CURDATE() ORDER BY event_date ASC, event_time ASC");
-$stmt->execute(['cid' => $activeClassId]);
-$upcomingEvents = $stmt->fetchAll();
+// Carica eventi futuri e passati se c'è una classe attiva
+$upcomingEvents = [];
+$pastEvents = [];
+$birthdaysThisMonth = [];
 
-$stmt = $db->prepare("SELECT * FROM rappresentor_events WHERE class_id = :cid AND event_date < CURDATE() ORDER BY event_date DESC LIMIT 15");
-$stmt->execute(['cid' => $activeClassId]);
-$pastEvents = $stmt->fetchAll();
+if ($activeClassId) {
+    $stmt = $db->prepare("SELECT * FROM rappresentor_events WHERE class_id = :cid AND event_date >= CURDATE() ORDER BY event_date ASC, event_time ASC");
+    $stmt->execute(['cid' => $activeClassId]);
+    $upcomingEvents = $stmt->fetchAll();
 
-// Compleanni degli alunni del mese corrente
-$currentMonth = (int)date('m');
-$stmt = $db->prepare("SELECT first_name, last_name, birth_date FROM rappresentor_students WHERE class_id = :cid AND is_active = 1 AND birth_date IS NOT NULL AND MONTH(birth_date) = :m ORDER BY DAY(birth_date) ASC");
-$stmt->execute(['cid' => $activeClassId, 'm' => $currentMonth]);
-$birthdaysThisMonth = $stmt->fetchAll();
+    $stmt = $db->prepare("SELECT * FROM rappresentor_events WHERE class_id = :cid AND event_date < CURDATE() ORDER BY event_date DESC LIMIT 15");
+    $stmt->execute(['cid' => $activeClassId]);
+    $pastEvents = $stmt->fetchAll();
+
+    // Compleanni degli alunni del mese corrente
+    $currentMonth = (int)date('m');
+    $stmt = $db->prepare("SELECT first_name, last_name, birth_date FROM rappresentor_students WHERE class_id = :cid AND is_active = 1 AND birth_date IS NOT NULL AND MONTH(birth_date) = :m ORDER BY DAY(birth_date) ASC");
+    $stmt->execute(['cid' => $activeClassId, 'm' => $currentMonth]);
+    $birthdaysThisMonth = $stmt->fetchAll();
+}
+
+$pageTitle = 'Scadenze & Eventi';
+require_once __DIR__ . '/includes/header.php';
+
+if (!$activeClassId) {
+    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
+    require_once __DIR__ . '/includes/footer.php';
+    exit;
+}
 ?>
 
 <div class="page-header">

@@ -1,8 +1,7 @@
 <?php
 declare(strict_types=1);
 
-$pageTitle = 'Gestione Collaboratori';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/init.php';
 
 use Rappresentor\Core\Auth;
 use Rappresentor\Core\Helper;
@@ -11,6 +10,7 @@ use Rappresentor\Core\Mailer;
 // Riservato all'amministratore
 Auth::requireAdmin();
 
+$currentUser = Auth::user();
 $auth = new Auth($db);
 $canAdd = $auth->canAddUser();
 $activeCount = $auth->getActiveUsersCount();
@@ -113,6 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // Carica tutti gli utenti
 $users = $db->query("SELECT * FROM rappresentor_users ORDER BY is_active DESC, role ASC, name ASC")->fetchAll();
+
+$pageTitle = 'Gestione Collaboratori';
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="page-header">

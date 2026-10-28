@@ -1,19 +1,19 @@
 <?php
 declare(strict_types=1);
 
-$pageTitle = 'Alunni & Famiglie';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/init.php';
 
+use Rappresentor\Core\Auth;
 use Rappresentor\Core\Helper;
 
-if (!$activeClassId) {
-    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
-    require_once __DIR__ . '/includes/footer.php';
-    exit;
-}
+Auth::requireAuth('login.php');
+
+$currentUser = Auth::user();
+$activeClass = Helper::getActiveClass($db);
+$activeClassId = $activeClass['id'] ?? null;
 
 // Gestione Export CSV
-if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+if ($activeClassId && isset($_GET['export']) && $_GET['export'] === 'csv') {
     $stmt = $db->prepare("SELECT s.last_name, s.first_name, s.birth_date, s.allergies, s.notes,
         g.first_name as g_first_name, g.last_name as g_last_name, g.relation, g.phone, g.email, g.consent_whatsapp
         FROM rappresentor_students s 
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
-    if ($_POST['action'] === 'add_student') {
+    if ($activeClassId && $_POST['action'] === 'add_student') {
         $firstName = trim($_POST['first_name'] ?? '');
         $lastName = trim($_POST['last_name'] ?? '');
         $birthDate = !empty($_POST['birth_date']) ? $_POST['birth_date'] : null;
@@ -136,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 
-    if ($_POST['action'] === 'delete_student') {
+    if ($activeClassId && $_POST['action'] === 'delete_student') {
         $studentId = (int)($_POST['student_id'] ?? 0);
         $stmt = $db->prepare("DELETE FROM rappresentor_students WHERE id = :id AND class_id = :cid");
         $stmt->execute(['id' => $studentId, 'cid' => $activeClassId]);
@@ -146,31 +146,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Carica tutti gli alunni con relativi genitori
-$stmt = $db->prepare("SELECT s.* FROM rappresentor_students s WHERE s.class_id = :cid AND s.is_active = 1 ORDER BY s.last_name ASC, s.first_name ASC");
-$stmt->execute(['cid' => $activeClassId]);
-$students = $stmt->fetchAll();
-
-// Mappa contatti genitori per studente
-$studentIds = array_column($students, 'id');
+// Carica tutti gli alunni con relativi genitori se la classe è presente
+$students = [];
 $guardiansByStudent = [];
 $allPhoneNumbers = [];
+$whatsappGroupString = '';
 
-if (!empty($studentIds)) {
-    $placeholders = implode(',', array_fill(0, count($studentIds), '?'));
-    $stmt = $db->prepare("SELECT * FROM rappresentor_guardians WHERE student_id IN ({$placeholders}) ORDER BY is_primary DESC, id ASC");
-    $stmt->execute($studentIds);
-    $guardians = $stmt->fetchAll();
+if ($activeClassId) {
+    $stmt = $db->prepare("SELECT s.* FROM rappresentor_students s WHERE s.class_id = :cid AND s.is_active = 1 ORDER BY s.last_name ASC, s.first_name ASC");
+    $stmt->execute(['cid' => $activeClassId]);
+    $students = $stmt->fetchAll();
 
-    foreach ($guardians as $g) {
-        $guardiansByStudent[$g['student_id']][] = $g;
-        if (!empty($g['phone']) && (int)$g['consent_whatsapp'] === 1) {
-            $allPhoneNumbers[] = Helper::cleanPhone($g['phone']);
+    $studentIds = array_column($students, 'id');
+    if (!empty($studentIds)) {
+        $placeholders = implode(',', array_fill(0, count($studentIds), '?'));
+        $stmt = $db->prepare("SELECT * FROM rappresentor_guardians WHERE student_id IN ({$placeholders}) ORDER BY is_primary DESC, id ASC");
+        $stmt->execute($studentIds);
+        $guardians = $stmt->fetchAll();
+
+        foreach ($guardians as $g) {
+            $guardiansByStudent[$g['student_id']][] = $g;
+            if (!empty($g['phone']) && (int)$g['consent_whatsapp'] === 1) {
+                $allPhoneNumbers[] = Helper::cleanPhone($g['phone']);
+            }
         }
     }
+    $allPhoneNumbers = array_unique($allPhoneNumbers);
+    $whatsappGroupString = implode(', ', $allPhoneNumbers);
 }
-$allPhoneNumbers = array_unique($allPhoneNumbers);
-$whatsappGroupString = implode(', ', $allPhoneNumbers);
+
+$pageTitle = 'Alunni & Famiglie';
+require_once __DIR__ . '/includes/header.php';
+
+if (!$activeClassId) {
+    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
+    require_once __DIR__ . '/includes/footer.php';
+    exit;
+}
 ?>
 
 <div class="page-header">

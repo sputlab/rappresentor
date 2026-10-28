@@ -3,8 +3,13 @@ declare(strict_types=1);
 
 /**
  * Inizializzazione applicativa di base
- * Versione SemVer: 0.1.0
+ * Versione SemVer: 0.3.3
  */
+
+// Avvia output buffering per prevenire problemi di headers already sent con redirect HTTP
+if (ob_get_level() === 0) {
+    ob_start();
+}
 
 // Autoloader per classi in core/
 spl_autoload_register(function ($class) {

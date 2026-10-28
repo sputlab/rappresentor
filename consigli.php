@@ -1,23 +1,23 @@
 <?php
 declare(strict_types=1);
 
-$pageTitle = 'Consigli & Note di Classe';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/init.php';
 
+use Rappresentor\Core\Auth;
 use Rappresentor\Core\Helper;
 
-if (!$activeClassId) {
-    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
-    require_once __DIR__ . '/includes/footer.php';
-    exit;
-}
+Auth::requireAuth('login.php');
+
+$currentUser = Auth::user();
+$activeClass = Helper::getActiveClass($db);
+$activeClassId = $activeClass['id'] ?? null;
 
 // Gestione Azioni POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!Helper::verifyCsrf()) {
         Helper::setFlash('danger', 'Richiesta non valida.');
     } else {
-        if ($_POST['action'] === 'add_topic') {
+        if ($activeClassId && $_POST['action'] === 'add_topic') {
             $title = trim($_POST['title'] ?? '');
             $category = $_POST['category'] ?? 'varie';
             $description = trim($_POST['description'] ?? '');
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
 
-        if ($_POST['action'] === 'update_topic') {
+        if ($activeClassId && $_POST['action'] === 'update_topic') {
             $topicId = (int)($_POST['topic_id'] ?? 0);
             $status = $_POST['status'] ?? 'proposto';
             $outcome = trim($_POST['outcome_notes'] ?? '');
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             exit;
         }
 
-        if ($_POST['action'] === 'delete_topic') {
+        if ($activeClassId && $_POST['action'] === 'delete_topic') {
             $topicId = (int)($_POST['topic_id'] ?? 0);
             $stmt = $db->prepare("DELETE FROM rappresentor_interclasse_topics WHERE id = :id AND class_id = :cid");
             $stmt->execute(['id' => $topicId, 'cid' => $activeClassId]);
@@ -68,27 +68,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Carica tutti gli argomenti della classe
-$stmt = $db->prepare("SELECT * FROM rappresentor_interclasse_topics WHERE class_id = :cid ORDER BY FIELD(status, 'proposto', 'in_discussione', 'approvato', 'risolto', 'archiviato'), id DESC");
-$stmt->execute(['cid' => $activeClassId]);
-$topics = $stmt->fetchAll();
+$topics = [];
+$reportTopics = '';
 
-// Prepara testo riassuntivo per WhatsApp
-$reportTopics = "📋 *Punti & Richieste per il Consiglio d'Interclasse/Docenti*\n";
-$reportTopics .= "🏫 " . ($activeClass['name'] ?? 'Classe') . "\n\n";
-foreach ($topics as $t) {
-    if ($t['status'] !== 'archiviato') {
-        $statusIcon = match($t['status']) {
-            'proposto' => '🟡 Proposto',
-            'in_discussione' => '🟠 In trattazione',
-            'approvato' => '🟢 Accolto/Approvato',
-            'risolto' => '✅ Risolto',
-            default => '⚪'
-        };
-        $reportTopics .= "• *[" . strtoupper($t['category']) . "]* " . $t['title'] . " (" . $statusIcon . ")\n";
-        if (!empty($t['outcome_notes'])) {
-            $reportTopics .= "  ↳ _Risposta docenti_: " . $t['outcome_notes'] . "\n";
+if ($activeClassId) {
+    $stmt = $db->prepare("SELECT * FROM rappresentor_interclasse_topics WHERE class_id = :cid ORDER BY FIELD(status, 'proposto', 'in_discussione', 'approvato', 'risolto', 'archiviato'), id DESC");
+    $stmt->execute(['cid' => $activeClassId]);
+    $topics = $stmt->fetchAll();
+
+    // Prepara testo riassuntivo per WhatsApp
+    $reportTopics = "📋 *Punti & Richieste per il Consiglio d'Interclasse/Docenti*\n";
+    $reportTopics .= "🏫 " . ($activeClass['name'] ?? 'Classe') . "\n\n";
+    foreach ($topics as $t) {
+        if ($t['status'] !== 'archiviato') {
+            $statusIcon = match($t['status']) {
+                'proposto' => '🟡 Proposto',
+                'in_discussione' => '🟠 In trattazione',
+                'approvato' => '🟢 Accolto/Approvato',
+                'risolto' => '✅ Risolto',
+                default => '⚪'
+            };
+            $reportTopics .= "• *[" . strtoupper($t['category']) . "]* " . $t['title'] . " (" . $statusIcon . ")\n";
+            if (!empty($t['outcome_notes'])) {
+                $reportTopics .= "  ↳ _Risposta docenti_: " . $t['outcome_notes'] . "\n";
+            }
         }
     }
+}
+
+$pageTitle = 'Consigli & Note di Classe';
+require_once __DIR__ . '/includes/header.php';
+
+if (!$activeClassId) {
+    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
+    require_once __DIR__ . '/includes/footer.php';
+    exit;
 }
 ?>
 

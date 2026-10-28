@@ -4,6 +4,13 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.3.3] - 2026-10-28
+### Corretto
+- **Headers Already Sent e Flusso Redirect**: risolto l'errore `Warning: Cannot modify header information - headers already sent by .../includes/header.php` durante i salvataggi e redirect HTTP (ad es. in `impostazioni.php`, `alunni.php`, `cassa.php`, `utenti.php`, `classi.php`, `calendario.php`, `consigli.php`, `comunicazioni.php`).
+- Separata l'esecuzione della logica applicativa (controllo permessi utente, validazione token CSRF, salvataggi POST, export file CSV ed emissione di header di reindirizzamento HTTP `Location: ...`) dall'inclusione del template visivo (`includes/header.php`).
+- Inizializzato l'output buffering (`ob_start()`) in `includes/init.php` per proteggere l'applicazione da flush precoci dell'output buffer su qualsiasi server di hosting condiviso.
+- Garantita l'integrità dei download CSV in `alunni.php`, impedendo che frammenti di codice HTML precedessero l'output del flusso CSV.
+
 ## [0.3.2] - 2026-10-28
 ### Corretto
 - **Errore PDO in Impostazioni**: risolta l'eccezione `SQLSTATE[HY093]: Invalid parameter number` durante il salvataggio dei parametri in `impostazioni.php` (e `install.php`). Con i prepared statements nativi di MySQL (`PDO::ATTR_EMULATE_PREPARES = false`), i parametri con lo stesso nome non possono essere riutilizzati due volte all'interno della clausola `ON DUPLICATE KEY UPDATE`; i parametri sono stati resi univoci (`:v` e `:v_update`).

@@ -1,8 +1,7 @@
 <?php
 declare(strict_types=1);
 
-$pageTitle = 'Impostazioni & Notifiche';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/init.php';
 
 use Rappresentor\Core\Auth;
 use Rappresentor\Core\Helper;
@@ -11,12 +10,7 @@ use Rappresentor\Core\Mailer;
 // Riservato all'amministratore
 Auth::requireAdmin();
 
-// Carica impostazioni attuali
-$settingsRows = $db->query("SELECT key_name, key_value FROM rappresentor_settings")->fetchAll();
-$settings = [];
-foreach ($settingsRows as $row) {
-    $settings[$row['key_name']] = $row['key_value'];
-}
+$currentUser = Auth::user();
 
 // Gestione Salvataggio
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -57,15 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         if ($_POST['action'] === 'test_email') {
-            $testTo = trim($_POST['test_email_recipient'] ?? $currentUser['email']);
+            $testTo = trim($_POST['test_email_recipient'] ?? ($currentUser['email'] ?? ''));
             $mailer = new Mailer($db);
+            $userName = $currentUser['name'] ?? 'Admin';
             $subject = "Test Notifiche - Rappresentor v" . Helper::getAppVersion();
-            $body = "<p>Ciao <strong>" . Helper::e($currentUser['name']) . "</strong>,</p>" .
+            $body = "<p>Ciao <strong>" . Helper::e($userName) . "</strong>,</p>" .
                     "<p>Questo &egrave; un messaggio di test inviato da <strong>Rappresentor</strong>.</p>" .
                     "<p>Se stai leggendo questa email, il motore di notifica e la configurazione mail sul tuo dominio funzionano correttamente! 🎉</p>" .
                     "<p style='color:#64748b; font-size:12px;'>Data invio: " . date('d/m/Y H:i:s') . "</p>";
 
-            $sent = $mailer->send($testTo, $currentUser['name'], $subject, $body);
+            $sent = $mailer->send($testTo, $userName, $subject, $body);
 
             if ($sent) {
                 Helper::setFlash('success', "Email di test inviata con successo a {$testTo}!");
@@ -77,6 +72,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 }
+
+// Carica impostazioni attuali
+$settingsRows = $db->query("SELECT key_name, key_value FROM rappresentor_settings")->fetchAll();
+$settings = [];
+foreach ($settingsRows as $row) {
+    $settings[$row['key_name']] = $row['key_value'];
+}
+
+$pageTitle = 'Impostazioni & Notifiche';
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="page-header">

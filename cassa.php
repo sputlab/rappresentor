@@ -1,0 +1,647 @@
+<?php
+declare(strict_types=1);
+
+$pageTitle = 'Cassa & Quote';
+require_once __DIR__ . '/includes/header.php';
+
+use Rappresentor\Core\Helper;
+use Rappresentor\Core\Auth;
+
+if (!$activeClassId) {
+    echo '<div class="alert alert-warning">Seleziona o crea prima una classe.</div>';
+    require_once __DIR__ . '/includes/footer.php';
+    exit;
+}
+
+// Gestione Azioni POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!Helper::verifyCsrf()) {
+        Helper::setFlash('danger', 'Richiesta non valida. Riprova.');
+        header('Location: cassa.php');
+        exit;
+    }
+
+    // 1. Nuova Campagna di Raccolta Quote
+    if ($_POST['action'] === 'add_campaign') {
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $quota = (float)str_replace(',', '.', $_POST['quota_per_student'] ?? '0');
+        $deadline = !empty($_POST['deadline']) ? $_POST['deadline'] : null;
+
+        if (empty($title) || $quota <= 0) {
+            Helper::setFlash('danger', 'Titolo della raccolta e quota valida sono obbligatori.');
+        } else {
+            $stmt = $db->prepare("INSERT INTO campaigns (class_id, title, description, quota_per_student, deadline) VALUES (:cid, :ti, :de, :qu, :dl)");
+            $stmt->execute([
+                'cid' => $activeClassId,
+                'ti' => $title,
+                'de' => $description,
+                'qu' => $quota,
+                'dl' => $deadline
+            ]);
+            $campaignId = (int)$db->lastInsertId();
+
+            // Inizializza riga di pagamento per tutti gli alunni attivi della classe
+            $stmtStu = $db->prepare("SELECT id FROM students WHERE class_id = :cid AND is_active = 1");
+            $stmtStu->execute(['cid' => $activeClassId]);
+            $students = $stmtStu->fetchAll();
+
+            $insertPay = $db->prepare("INSERT INTO payments (campaign_id, student_id, status, amount_paid) VALUES (:cid, :sid, 'non_pagato', 0.00)");
+            foreach ($students as $s) {
+                $insertPay->execute(['cid' => $campaignId, 'sid' => $s['id']]);
+            }
+
+            Helper::setFlash('success', "Raccolta quote '{$title}' creata con successo per tutti gli alunni!");
+            header("Location: cassa.php?campaign_id={$campaignId}");
+            exit;
+        }
+    }
+
+    // 2. Nuovo Movimento Cassa (Entrata / Uscita)
+    if ($_POST['action'] === 'add_transaction') {
+        $type = $_POST['type'] ?? 'uscita';
+        $amount = (float)str_replace(',', '.', $_POST['amount'] ?? '0');
+        $category = trim($_POST['category'] ?? 'Varie');
+        $description = trim($_POST['description'] ?? '');
+        $date = !empty($_POST['transaction_date']) ? $_POST['transaction_date'] : date('Y-m-d');
+        $receipt = trim($_POST['receipt_ref'] ?? '');
+        $campaignId = !empty($_POST['campaign_id']) ? (int)$_POST['campaign_id'] : null;
+
+        if ($amount <= 0 || empty($description)) {
+            Helper::setFlash('danger', 'Importo e descrizione sono obbligatori.');
+        } else {
+            $stmt = $db->prepare("INSERT INTO cashbox_transactions (class_id, campaign_id, type, amount, category, description, transaction_date, receipt_ref, created_by) 
+                VALUES (:cid, :cmp, :ty, :am, :cat, :de, :td, :rc, :cb)");
+            $stmt->execute([
+                'cid' => $activeClassId,
+                'cmp' => $campaignId,
+                'ty' => $type,
+                'am' => $amount,
+                'cat' => $category,
+                'de' => $description,
+                'td' => $date,
+                'rc' => $receipt,
+                'cb' => Auth::id()
+            ]);
+            Helper::setFlash('success', 'Movimento registrato con successo nel libro cassa!');
+            header('Location: cassa.php');
+            exit;
+        }
+    }
+
+    // 3. Aggiornamento Singolo Pagamento Alunno (versione form standard)
+    if ($_POST['action'] === 'update_single_payment') {
+        $paymentId = (int)($_POST['payment_id'] ?? 0);
+        $campaignId = (int)($_POST['campaign_id'] ?? 0);
+        $status = $_POST['status'] ?? 'non_pagato';
+        $amount = (float)str_replace(',', '.', $_POST['amount_paid'] ?? '0');
+        $method = $_POST['payment_method'] ?? 'contanti';
+        $notes = trim($_POST['notes'] ?? '');
+        $paidAt = ($status === 'pagato') ? date('Y-m-d') : null;
+
+        $stmt = $db->prepare("UPDATE payments SET status = :st, amount_paid = :am, payment_method = :pm, paid_at = :pa, notes = :nt WHERE id = :id");
+        $stmt->execute([
+            'st' => $status,
+            'am' => $amount,
+            'pm' => $method,
+            'pa' => $paidAt,
+            'nt' => $notes,
+            'id' => $paymentId
+        ]);
+
+        Helper::setFlash('success', 'Pagamento aggiornato.');
+        header("Location: cassa.php?campaign_id={$campaignId}");
+        exit;
+    }
+
+    // 4. Chiusura / Riapertura Campagna
+    if ($_POST['action'] === 'toggle_campaign_status') {
+        $campaignId = (int)($_POST['campaign_id'] ?? 0);
+        $isClosed = (int)($_POST['is_closed'] ?? 0);
+        $stmt = $db->prepare("UPDATE campaigns SET is_closed = :cl WHERE id = :id AND class_id = :cid");
+        $stmt->execute(['cl' => $isClosed, 'id' => $campaignId, 'cid' => $activeClassId]);
+        Helper::setFlash('info', 'Stato raccolta aggiornato.');
+        header("Location: cassa.php?campaign_id={$campaignId}");
+        exit;
+    }
+}
+
+// 1. Calcolo Saldo Cassa Totale
+$stmt = $db->prepare("SELECT 
+    COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
+    COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
+    FROM cashbox_transactions WHERE class_id = :cid");
+$stmt->execute(['cid' => $activeClassId]);
+$cashSummary = $stmt->fetch();
+$totalEntrate = (float)$cashSummary['total_entrate'];
+$totalUscite = (float)$cashSummary['total_uscite'];
+$saldoCassa = $totalEntrate - $totalUscite;
+
+// 2. Carica Campagne Quote
+$stmt = $db->prepare("SELECT c.*, 
+    (SELECT COUNT(*) FROM payments p WHERE p.campaign_id = c.id AND p.status = 'pagato') as pagati_count,
+    (SELECT COUNT(*) FROM payments p WHERE p.campaign_id = c.id) as totale_alunni,
+    (SELECT COALESCE(SUM(amount_paid), 0) FROM payments p WHERE p.campaign_id = c.id) as totale_raccolto
+    FROM campaigns c 
+    WHERE c.class_id = :cid 
+    ORDER BY c.is_closed ASC, c.id DESC");
+$stmt->execute(['cid' => $activeClassId]);
+$campaigns = $stmt->fetchAll();
+
+// Campagna selezionata
+$selectedCampaignId = isset($_GET['campaign_id']) ? (int)$_GET['campaign_id'] : ($campaigns[0]['id'] ?? 0);
+$selectedCampaign = null;
+$campaignPayments = [];
+
+if ($selectedCampaignId > 0) {
+    foreach ($campaigns as $camp) {
+        if ((int)$camp['id'] === $selectedCampaignId) {
+            $selectedCampaign = $camp;
+            break;
+        }
+    }
+
+    if ($selectedCampaign) {
+        // Carica elenco alunni e relativo pagamento per la campagna
+        $stmt = $db->prepare("SELECT p.*, s.first_name, s.last_name 
+            FROM payments p 
+            JOIN students s ON p.student_id = s.id 
+            WHERE p.campaign_id = :cmp AND s.is_active = 1 
+            ORDER BY s.last_name ASC, s.first_name ASC");
+        $stmt->execute(['cmp' => $selectedCampaignId]);
+        $campaignPayments = $stmt->fetchAll();
+    }
+}
+
+// 3. Movimenti Registro Cassa Recenti
+$stmt = $db->prepare("SELECT ct.*, u.name as user_name 
+    FROM cashbox_transactions ct 
+    LEFT JOIN users u ON ct.created_by = u.id 
+    WHERE ct.class_id = :cid 
+    ORDER BY ct.transaction_date DESC, ct.id DESC LIMIT 50");
+$stmt->execute(['cid' => $activeClassId]);
+$transactions = $stmt->fetchAll();
+
+// Costruisci testo rendiconto cassa WhatsApp
+$rendicontoWa = "📊 *RENDICONTO CASSA DI CLASSE*\n";
+$rendicontoWa .= "🏫 " . ($activeClass['name'] ?? 'Classe') . " - A.S. " . ($activeClass['school_year'] ?? '') . "\n";
+$rendicontoWa .= "📅 Aggiornato al: " . date('d/m/Y') . "\n\n";
+$rendicontoWa .= "💰 *SALDO ATTUALE:* " . Helper::formatMoney($saldoCassa) . "\n";
+$rendicontoWa .= "📥 Totale Entrate: " . Helper::formatMoney($totalEntrate) . "\n";
+$rendicontoWa .= "📤 Totale Uscite: " . Helper::formatMoney($totalUscite) . "\n\n";
+$rendicontoWa .= "*Ultime uscite registrate:*\n";
+
+$recentUsciteCount = 0;
+foreach ($transactions as $t) {
+    if ($t['type'] === 'uscita' && $recentUsciteCount < 5) {
+        $rendicontoWa .= "- " . Helper::formatDate($t['transaction_date']) . ": " . Helper::e($t['description']) . " (" . Helper::formatMoney($t['amount']) . ")\n";
+        $recentUsciteCount++;
+    }
+}
+if ($recentUsciteCount === 0) {
+    $rendicontoWa .= "Nessuna spesa recente.\n";
+}
+$rendicontoWa .= "\nI giustificativi e scontrini sono sempre disponibili per consultazione. Grazie a tutti i genitori!";
+?>
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <span>💰</span>
+      <span>Cassa & Quote di Classe</span>
+    </h1>
+    <p class="page-subtitle">Gestione trasparente del fondo cassa, quote alunni, entrate e scontrini.</p>
+  </div>
+  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <button class="btn btn-primary" data-modal-target="modalAddCampaign">+ Nuova Raccolta Quote</button>
+    <button class="btn btn-secondary" data-modal-target="modalAddTransaction">+ Registra Movimento</button>
+    <button class="btn btn-whatsapp" data-modal-target="modalRendicontoWa">📱 Copia Rendiconto WA</button>
+  </div>
+</div>
+
+<!-- Schede Statistiche Cassa -->
+<div class="grid-3">
+  <div class="stat-card">
+    <div class="stat-icon" style="background: <?= $saldoCassa >= 0 ? 'var(--success-bg)' : 'var(--danger-bg)' ?>; color: <?= $saldoCassa >= 0 ? 'var(--success)' : 'var(--danger)' ?>;">
+      <?= $saldoCassa >= 0 ? '💵' : '⚠️' ?>
+    </div>
+    <div class="stat-info">
+      <div class="stat-label">Saldo Cassa Disponibile</div>
+      <div class="stat-value" style="color: <?= $saldoCassa >= 0 ? 'var(--success-text)' : 'var(--danger-text)' ?>;">
+        <?= Helper::formatMoney($saldoCassa) ?>
+      </div>
+      <div class="stat-hint">Fondo comune classe</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background: var(--info-bg); color: var(--info);">📥</div>
+    <div class="stat-info">
+      <div class="stat-label">Totale Entrate</div>
+      <div class="stat-value"><?= Helper::formatMoney($totalEntrate) ?></div>
+      <div class="stat-hint">Quote alunni e fondi versati</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background: var(--warning-bg); color: var(--warning);">📤</div>
+    <div class="stat-info">
+      <div class="stat-label">Totale Uscite</div>
+      <div class="stat-value"><?= Helper::formatMoney($totalUscite) ?></div>
+      <div class="stat-hint">Regali maestre, materiali, gite</div>
+    </div>
+  </div>
+</div>
+
+<!-- Sezione Raccolte Quote Attive e Dettaglio Pagamenti -->
+<div class="card">
+  <div class="card-header">
+    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+      <h2 class="card-title">🎯 Monitoraggio Versamenti Quote</h2>
+      <?php if (!empty($campaigns)): ?>
+        <select onchange="window.location.href='cassa.php?campaign_id='+this.value" class="form-control" style="width: auto; padding: 4px 8px; font-size: 0.88rem;">
+          <?php foreach ($campaigns as $c): ?>
+            <option value="<?= (int)$c['id'] ?>" <?= ((int)$c['id'] === $selectedCampaignId) ? 'selected' : '' ?>>
+              <?= $c['is_closed'] ? '🔒 [Chiusa] ' : '🟢 ' ?><?= Helper::e($c['title']) ?> (Quota: <?= Helper::formatMoney($c['quota_per_student']) ?>)
+            </option>
+          <?php endforeach; ?>
+        </select>
+      <?php endif; ?>
+    </div>
+
+    <?php if ($selectedCampaign): ?>
+      <div>
+        <form method="POST" action="cassa.php" style="display: inline;">
+          <?= Helper::csrfField() ?>
+          <input type="hidden" name="action" value="toggle_campaign_status">
+          <input type="hidden" name="campaign_id" value="<?= (int)$selectedCampaign['id'] ?>">
+          <input type="hidden" name="is_closed" value="<?= $selectedCampaign['is_closed'] ? '0' : '1' ?>">
+          <button type="submit" class="btn btn-sm btn-secondary">
+            <?= $selectedCampaign['is_closed'] ? '🔓 Riapri Raccolta' : '🔒 Chiudi Raccolta' ?>
+          </button>
+        </form>
+      </div>
+    <?php endif; ?>
+  </div>
+
+  <div class="card-body">
+    <?php if (!$selectedCampaign): ?>
+      <p style="color: var(--text-muted); margin: 0; padding: 20px 0; text-align: center;">
+        Nessuna raccolta quote creata. Clicca su "+ Nuova Raccolta Quote" per avviare la raccolta (es. regalo maestre, cancelleria, gita).
+      </p>
+    <?php else: 
+      $totAlunni = (int)$selectedCampaign['totale_alunni'];
+      $pagCount = (int)$selectedCampaign['pagati_count'];
+      $pct = $totAlunni > 0 ? round(($pagCount / $totAlunni) * 100) : 0;
+    ?>
+      <div style="background: var(--bg-surface-alt); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem;"><?= Helper::e($selectedCampaign['title']) ?></h3>
+            <div style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 4px;">
+              Quota richiesta per alunno: <strong><?= Helper::formatMoney($selectedCampaign['quota_per_student']) ?></strong>
+              <?php if ($selectedCampaign['deadline']): ?>
+                • Scadenza entro: <strong><?= Helper::formatDate($selectedCampaign['deadline']) ?></strong>
+              <?php endif; ?>
+            </div>
+            <?php if (!empty($selectedCampaign['description'])): ?>
+              <p style="margin: 6px 0 0; font-size: 0.85rem; color: var(--text-secondary);">
+                <?= Helper::e($selectedCampaign['description']) ?>
+              </p>
+            <?php endif; ?>
+          </div>
+
+          <div style="text-align: right;">
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">
+              <?= Helper::formatMoney($selectedCampaign['totale_raccolto']) ?> raccolti
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+              <strong><?= $pagCount ?></strong> su <strong><?= $totAlunni ?></strong> alunni hanno versato (<?= $pct ?>%)
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra di progresso -->
+        <div style="background: #e2e8f0; height: 10px; border-radius: 99px; overflow: hidden; margin-top: 14px;">
+          <div style="background: var(--primary); height: 100%; width: <?= $pct ?>%;"></div>
+        </div>
+      </div>
+
+      <!-- Tabella Pagamenti Alunno per Alunno -->
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Alunno</th>
+              <th>Stato Pagamento</th>
+              <th>Importo Versato</th>
+              <th>Modalità</th>
+              <th>Data Versamento</th>
+              <th>Note</th>
+              <th style="text-align: right;">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($campaignPayments as $pay): ?>
+              <tr>
+                <td>
+                  <strong><?= Helper::e($pay['last_name']) ?> <?= Helper::e($pay['first_name']) ?></strong>
+                </td>
+                <td>
+                  <?php if ($pay['status'] === 'pagato'): ?>
+                    <span class="badge badge-success">✅ Pagato</span>
+                  <?php elseif ($pay['status'] === 'parziale'): ?>
+                    <span class="badge badge-info">⚖️ Parziale</span>
+                  <?php elseif ($pay['status'] === 'esonerato'): ?>
+                    <span class="badge badge-secondary">⚪ Esonerato</span>
+                  <?php else: ?>
+                    <span class="badge badge-danger">⏳ Non pagato</span>
+                  <?php endif; ?>
+                </td>
+                <td><?= Helper::formatMoney($pay['amount_paid']) ?></td>
+                <td style="text-transform: capitalize;"><?= Helper::e($pay['payment_method']) ?></td>
+                <td><?= Helper::formatDate($pay['paid_at']) ?></td>
+                <td style="font-size: 0.82rem; color: var(--text-secondary);"><?= Helper::e($pay['notes'] ?? '-') ?></td>
+                <td style="text-align: right;">
+                  <button class="btn btn-sm <?= $pay['status'] === 'pagato' ? 'btn-secondary' : 'btn-success' ?>" 
+                          onclick="openEditPaymentModal(<?= (int)$pay['id'] ?>, '<?= Helper::e(addslashes($pay['last_name'] . ' ' . $pay['first_name'])) ?>', '<?= $pay['status'] ?>', <?= (float)$pay['amount_paid'] ?>, '<?= $pay['payment_method'] ?>', '<?= Helper::e(addslashes($pay['notes'] ?? '')) ?>', <?= (float)$selectedCampaign['quota_per_student'] ?>)">
+                    <?= $pay['status'] === 'pagato' ? 'Modifica' : '✓ Segna Pagato' ?>
+                  </button>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<!-- Libro Cassa: Registro Entrate e Uscite -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">📖 Registro Entrate & Uscite Cassa</h2>
+    <span style="font-size: 0.85rem; color: var(--text-secondary);"><?= count($transactions) ?> registrazioni</span>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Categoria</th>
+            <th>Descrizione & Note</th>
+            <th>Scontrino / Riferimento</th>
+            <th style="text-align: right;">Importo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if (empty($transactions)): ?>
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                Nessun movimento registrato. Clicca su "+ Registra Movimento" per inserire un'uscita o entrata.
+              </td>
+            </tr>
+          <?php else: ?>
+            <?php foreach ($transactions as $t): 
+              $isEntrata = $t['type'] === 'entrata';
+            ?>
+              <tr>
+                <td><?= Helper::formatDate($t['transaction_date']) ?></td>
+                <td>
+                  <span class="badge <?= $isEntrata ? 'badge-success' : 'badge-danger' ?>">
+                    <?= $isEntrata ? '⬇ Entrata' : '⬆ Uscita' ?>
+                  </span>
+                </td>
+                <td><strong><?= Helper::e($t['category']) ?></strong></td>
+                <td><?= Helper::e($t['description']) ?></td>
+                <td>
+                  <?php if (!empty($t['receipt_ref'])): ?>
+                    <span class="badge badge-secondary">🧾 <?= Helper::e($t['receipt_ref']) ?></span>
+                  <?php else: ?>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">-</span>
+                  <?php endif; ?>
+                </td>
+                <td style="text-align: right; font-weight: 700; color: <?= $isEntrata ? 'var(--success-text)' : 'var(--danger-text)' ?>;">
+                  <?= $isEntrata ? '+' : '-' ?> <?= Helper::formatMoney($t['amount']) ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nuova Raccolta Quote -->
+<div class="modal-backdrop" id="modalAddCampaign">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Nuova Raccolta Quote</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form method="POST" action="cassa.php">
+      <?= Helper::csrfField() ?>
+      <input type="hidden" name="action" value="add_campaign">
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="camp_title">Titolo Raccolta *</label>
+          <input type="text" id="camp_title" name="title" class="form-control" placeholder="es. Regalo Maestre Natale, Cassa Cancelleria..." required>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="quota_per_student">Quota richiesta per alunno (€) *</label>
+            <input type="number" step="0.50" min="0.50" id="quota_per_student" name="quota_per_student" class="form-control" placeholder="es. 10.00" required>
+          </div>
+          <div class="form-group">
+            <label for="camp_deadline">Termine ultimo versamento</label>
+            <input type="date" id="camp_deadline" name="deadline" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="camp_desc">Note o spiegazione per i genitori</label>
+          <textarea id="camp_desc" name="description" class="form-control" rows="2" placeholder="Cosa verrà acquistato o modalità di consegna..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Annulla</button>
+        <button type="submit" class="btn btn-primary">Avvia Raccolta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Registra Movimento Cassa -->
+<div class="modal-backdrop" id="modalAddTransaction">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Registra Movimento nel Libro Cassa</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form method="POST" action="cassa.php">
+      <?= Helper::csrfField() ?>
+      <input type="hidden" name="action" value="add_transaction">
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="tx_type">Tipo Movimento *</label>
+            <select id="tx_type" name="type" class="form-control" required>
+              <option value="uscita">⬆ Spesa / Uscita (es. acquisto regalo, scontrino)</option>
+              <option value="entrata">⬇ Entrata (es. versamento quote, donazione)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tx_amount">Importo (€) *</label>
+            <input type="number" step="0.01" min="0.01" id="tx_amount" name="amount" class="form-control" placeholder="es. 35.50" required>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="tx_category">Categoria *</label>
+            <select id="tx_category" name="category" class="form-control" required>
+              <option value="Quote Alunni">Quote Alunni</option>
+              <option value="Regalo Maestre/Educatrici">Regalo Maestre/Educatrici</option>
+              <option value="Materiale Cancelleria">Materiale Cancelleria</option>
+              <option value="Gita / Biglietti">Gita / Biglietti</option>
+              <option value="Festa di Classe">Festa di Classe</option>
+              <option value="Altro">Altro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tx_date">Data Movimento</label>
+            <input type="date" id="tx_date" name="transaction_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="tx_desc">Descrizione *</label>
+          <input type="text" id="tx_desc" name="description" class="form-control" placeholder="es. Acquisto carta per fotocopie e pennarelli colorati" required>
+        </div>
+
+        <div class="form-group">
+          <label for="tx_receipt">Riferimento Scontrino / Ricevuta</label>
+          <input type="text" id="tx_receipt" name="receipt_ref" class="form-control" placeholder="es. Scontrino n. 45 Cartoleria ABC del 12/10">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Annulla</button>
+        <button type="submit" class="btn btn-primary">Registra Movimento</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Modifica Pagamento Alunno -->
+<div class="modal-backdrop" id="modalEditPayment">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Aggiorna Quota Alunno</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form method="POST" action="cassa.php">
+      <?= Helper::csrfField() ?>
+      <input type="hidden" name="action" value="update_single_payment">
+      <input type="hidden" name="payment_id" id="editPaymentId" value="">
+      <input type="hidden" name="campaign_id" value="<?= (int)$selectedCampaignId ?>">
+
+      <div class="modal-body">
+        <p style="font-size: 0.95rem; margin-top: 0;">Alunno: <strong id="editPaymentStudentName"></strong></p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="edit_status">Stato Versamento *</label>
+            <select id="edit_status" name="status" class="form-control" onchange="handleStatusChange(this.value)">
+              <option value="pagato">✅ Pagato</option>
+              <option value="non_pagato">⏳ Non pagato</option>
+              <option value="parziale">⚖️ Pagamento Parziale</option>
+              <option value="esonerato">⚪ Esonerato</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit_amount">Importo Versato (€) *</label>
+            <input type="number" step="0.50" min="0" id="edit_amount" name="amount_paid" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit_method">Modalità di Pagamento</label>
+          <select id="edit_method" name="payment_method" class="form-control">
+            <option value="contanti">Contanti</option>
+            <option value="bonifico">Bonifico Bancario</option>
+            <option value="satispay">Satispay</option>
+            <option value="paypal">PayPal</option>
+            <option value="altro">Altro</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit_notes">Note</label>
+          <input type="text" id="edit_notes" name="notes" class="form-control" placeholder="es. Consegnati alla mamma di Marco">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva Pagamento</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Rendiconto WhatsApp -->
+<div class="modal-backdrop" id="modalRendicontoWa">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Rendiconto Cassa per WhatsApp</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0;">
+        Testo trasparente con emoji già pronto da copiare e incollare nella chat WhatsApp di classe:
+      </p>
+      <textarea id="textRendicontoWa" class="form-control" rows="10" readonly><?= Helper::e($rendicontoWa) ?></textarea>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-modal-close>Chiudi</button>
+      <button type="button" class="btn btn-whatsapp" data-copy-target="#textRendicontoWa" data-copy-success="Rendiconto copiato! Incollalo nella chat dei genitori.">
+        📋 Copia per WhatsApp
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let defaultCampaignQuota = 0;
+
+function openEditPaymentModal(id, studentName, status, amount, method, notes, quota) {
+  defaultCampaignQuota = quota;
+  document.getElementById('editPaymentId').value = id;
+  document.getElementById('editPaymentStudentName').innerText = studentName;
+  document.getElementById('edit_status').value = status;
+  document.getElementById('edit_amount').value = (amount > 0) ? amount : (status === 'pagato' ? quota : 0);
+  document.getElementById('edit_method').value = method || 'contanti';
+  document.getElementById('edit_notes').value = notes || '';
+  openModal('modalEditPayment');
+}
+
+function handleStatusChange(status) {
+  const amountInput = document.getElementById('edit_amount');
+  if (status === 'pagato' && parseFloat(amountInput.value) === 0) {
+    amountInput.value = defaultCampaignQuota;
+  } else if (status === 'non_pagato' || status === 'esonerato') {
+    amountInput.value = 0;
+  }
+}
+</script>
+
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

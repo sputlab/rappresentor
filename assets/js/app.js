@@ -1,0 +1,196 @@
+/**
+ * Rappresentor - Client JavaScript
+ * Versione SemVer: 0.1.0
+ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  initMobileNav();
+  initModals();
+  initClipboardButtons();
+  initQuickFilters();
+});
+
+/**
+ * Gestione Sidebar su Mobile
+ */
+function initMobileNav() {
+  const toggleBtn = document.querySelector('.mobile-nav-toggle');
+  const sidebar = document.querySelector('.sidebar');
+
+  if (toggleBtn && sidebar) {
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+
+    // Chiudi la sidebar se si clicca fuori
+    document.addEventListener('click', (e) => {
+      if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+        sidebar.classList.remove('open');
+      }
+    });
+  }
+}
+
+/**
+ * Gestione Modal Dialog
+ */
+function initModals() {
+  // Apertura modal tramite pulsanti data-modal-target
+  document.querySelectorAll('[data-modal-target]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = btn.getAttribute('data-modal-target');
+      openModal(targetId);
+    });
+  });
+
+  // Chiusura tramite data-modal-close o click su backdrop
+  document.querySelectorAll('.modal-backdrop').forEach((backdrop) => {
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) {
+        closeModal(backdrop.id);
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-modal-close]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const modal = btn.closest('.modal-backdrop');
+      if (modal) {
+        closeModal(modal.id);
+      }
+    });
+  });
+}
+
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+/**
+ * Copia rapida negli appunti (per messaggi WhatsApp o rubrica)
+ */
+function initClipboardButtons() {
+  document.querySelectorAll('[data-copy-target]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetSelector = btn.getAttribute('data-copy-target');
+      const targetEl = document.querySelector(targetSelector);
+      if (!targetEl) return;
+
+      const textToCopy = targetEl.value !== undefined ? targetEl.value : targetEl.innerText;
+      copyToClipboard(textToCopy, btn.getAttribute('data-copy-success') || 'Testo copiato negli appunti! Pronto da incollare.');
+    });
+  });
+}
+
+function copyToClipboard(text, successMessage = 'Copiato negli appunti!') {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(successMessage, 'success');
+    }).catch(() => {
+      fallbackCopy(text, successMessage);
+    });
+  } else {
+    fallbackCopy(text, successMessage);
+  }
+}
+
+function fallbackCopy(text, successMessage) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showToast(successMessage, 'success');
+  } catch (err) {
+    showToast('Impossibile copiare il testo. Selezionalo manualmente.', 'danger');
+  }
+  document.body.removeChild(textarea);
+}
+
+/**
+ * Toast fluttuante di notifica
+ */
+function showToast(message, type = 'info') {
+  let container = document.querySelector('.toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span>${message}</span>`;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+/**
+ * Filtro rapido in tempo reale su tabelle ed elenchi
+ */
+function initQuickFilters() {
+  const searchInputs = document.querySelectorAll('[data-filter-table]');
+  searchInputs.forEach((input) => {
+    input.addEventListener('input', () => {
+      const targetTableId = input.getAttribute('data-filter-table');
+      const table = document.getElementById(targetTableId);
+      if (!table) return;
+
+      const term = input.value.toLowerCase().trim();
+      const rows = table.querySelectorAll('tbody tr');
+
+      rows.forEach((row) => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(term) ? '' : 'none';
+      });
+    });
+  });
+}
+
+/**
+ * Aggiornamento rapido pagamento quota via AJAX
+ */
+async function updatePaymentStatus(paymentId, status, csrfToken) {
+  try {
+    const formData = new FormData();
+    formData.append('payment_id', paymentId);
+    formData.append('status', status);
+    formData.append('csrf_token', csrfToken);
+
+    const res = await fetch('api/update_payment.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast('Stato pagamento aggiornato con successo!', 'success');
+    } else {
+      showToast(data.message || 'Errore durante l\'aggiornamento.', 'danger');
+    }
+  } catch (e) {
+    showToast('Errore di connessione di rete.', 'danger');
+  }
+}

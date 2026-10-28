@@ -1,0 +1,12 @@
+# File di configurazione con credenziali del database
+config/config.php
+
+# File di sistema e log
+*.log
+.DS_Store
+Thumbs.db
+.env
+
+# Directory di cache o temporanee
+tmp/
+cache/

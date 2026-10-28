@@ -1,0 +1,18 @@
+# Protezione directory e file sensibili Rappresentor
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Blocca accesso diretto a file sensibili e directory di sistema
+    RewriteRule ^(config|core|database)/ - [F,L]
+    RewriteRule ^(\.env|VERSION|CHANGELOG\.md|composer\.(json|lock)) - [F,L]
+</IfModule>
+
+# Impedisci directory browsing
+Options -Indexes
+
+# Header di sicurezza base
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>

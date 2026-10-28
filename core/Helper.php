@@ -191,7 +191,7 @@ class Helper
 
         if (isset($_GET['switch_class'])) {
             $cid = (int)$_GET['switch_class'];
-            $stmt = $db->prepare("SELECT id FROM classes WHERE id = :id AND is_archived = 0");
+            $stmt = $db->prepare("SELECT id FROM rappresentor_classes WHERE id = :id AND is_archived = 0");
             $stmt->execute(['id' => $cid]);
             if ($stmt->fetch()) {
                 $_SESSION['active_class_id'] = $cid;
@@ -201,7 +201,7 @@ class Helper
 
         if (!empty($_SESSION['active_class_id'])) {
             // Verifica se esiste ancora
-            $stmt = $db->prepare("SELECT id FROM classes WHERE id = :id AND is_archived = 0");
+            $stmt = $db->prepare("SELECT id FROM rappresentor_classes WHERE id = :id AND is_archived = 0");
             $stmt->execute(['id' => (int)$_SESSION['active_class_id']]);
             if ($stmt->fetch()) {
                 return (int)$_SESSION['active_class_id'];
@@ -209,7 +209,7 @@ class Helper
         }
 
         // Se non impostata o non valida, prendi la prima classe attiva
-        $stmt = $db->query("SELECT id FROM classes WHERE is_archived = 0 ORDER BY id ASC LIMIT 1");
+        $stmt = $db->query("SELECT id FROM rappresentor_classes WHERE is_archived = 0 ORDER BY id ASC LIMIT 1");
         $firstId = $stmt->fetchColumn();
         if ($firstId) {
             $_SESSION['active_class_id'] = (int)$firstId;
@@ -228,7 +228,7 @@ class Helper
         if (!$classId) {
             return null;
         }
-        $stmt = $db->prepare("SELECT * FROM classes WHERE id = :id");
+        $stmt = $db->prepare("SELECT * FROM rappresentor_classes WHERE id = :id");
         $stmt->execute(['id' => $classId]);
         return $stmt->fetch() ?: null;
     }
@@ -238,7 +238,7 @@ class Helper
      */
     public static function getAllClasses(PDO $db, bool $includeArchived = false): array
     {
-        $sql = "SELECT * FROM classes";
+        $sql = "SELECT * FROM rappresentor_classes";
         if (!$includeArchived) {
             $sql .= " WHERE is_archived = 0";
         }

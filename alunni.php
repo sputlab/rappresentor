@@ -16,8 +16,8 @@ if (!$activeClassId) {
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $stmt = $db->prepare("SELECT s.last_name, s.first_name, s.birth_date, s.allergies, s.notes,
         g.first_name as g_first_name, g.last_name as g_last_name, g.relation, g.phone, g.email, g.consent_whatsapp
-        FROM students s 
-        LEFT JOIN guardians g ON s.id = g.student_id 
+        FROM rappresentor_students s 
+        LEFT JOIN rappresentor_guardians g ON s.id = g.student_id 
         WHERE s.class_id = :cid AND s.is_active = 1
         ORDER BY s.last_name ASC, s.first_name ASC");
     $stmt->execute(['cid' => $activeClassId]);
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($firstName) || empty($lastName)) {
             Helper::setFlash('danger', 'Nome e cognome dell\'alunno sono obbligatori.');
         } else {
-            $stmt = $db->prepare("INSERT INTO students (class_id, first_name, last_name, birth_date, allergies, notes) VALUES (:cid, :fn, :ln, :bd, :al, :nt)");
+            $stmt = $db->prepare("INSERT INTO rappresentor_students (class_id, first_name, last_name, birth_date, allergies, notes) VALUES (:cid, :fn, :ln, :bd, :al, :nt)");
             $stmt->execute([
                 'cid' => $activeClassId,
                 'fn' => $firstName,
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $studentId = (int)$db->lastInsertId();
 
             if (!empty($gFirstName) || !empty($gPhone)) {
-                $stmt = $db->prepare("INSERT INTO guardians (student_id, first_name, last_name, relation, phone, email, is_primary, consent_whatsapp) 
+                $stmt = $db->prepare("INSERT INTO rappresentor_guardians (student_id, first_name, last_name, relation, phone, email, is_primary, consent_whatsapp) 
                     VALUES (:sid, :gfn, :gln, :grel, :gph, :gem, 1, :gcon)");
                 $stmt->execute([
                     'sid' => $studentId,
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($firstName) || empty($lastName) || $studentId <= 0) {
             Helper::setFlash('danger', 'Dati genitore incompleti.');
         } else {
-            $stmt = $db->prepare("INSERT INTO guardians (student_id, first_name, last_name, relation, phone, email, consent_whatsapp) 
+            $stmt = $db->prepare("INSERT INTO rappresentor_guardians (student_id, first_name, last_name, relation, phone, email, consent_whatsapp) 
                 VALUES (:sid, :fn, :ln, :rel, :ph, :em, :con)");
             $stmt->execute([
                 'sid' => $studentId,
@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     if ($_POST['action'] === 'delete_student') {
         $studentId = (int)($_POST['student_id'] ?? 0);
-        $stmt = $db->prepare("DELETE FROM students WHERE id = :id AND class_id = :cid");
+        $stmt = $db->prepare("DELETE FROM rappresentor_students WHERE id = :id AND class_id = :cid");
         $stmt->execute(['id' => $studentId, 'cid' => $activeClassId]);
         Helper::setFlash('info', 'Alunno rimosso dalla classe.');
         header('Location: alunni.php');
@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Carica tutti gli alunni con relativi genitori
-$stmt = $db->prepare("SELECT s.* FROM students s WHERE s.class_id = :cid AND s.is_active = 1 ORDER BY s.last_name ASC, s.first_name ASC");
+$stmt = $db->prepare("SELECT s.* FROM rappresentor_students s WHERE s.class_id = :cid AND s.is_active = 1 ORDER BY s.last_name ASC, s.first_name ASC");
 $stmt->execute(['cid' => $activeClassId]);
 $students = $stmt->fetchAll();
 
@@ -158,7 +158,7 @@ $allPhoneNumbers = [];
 
 if (!empty($studentIds)) {
     $placeholders = implode(',', array_fill(0, count($studentIds), '?'));
-    $stmt = $db->prepare("SELECT * FROM guardians WHERE student_id IN ({$placeholders}) ORDER BY is_primary DESC, id ASC");
+    $stmt = $db->prepare("SELECT * FROM rappresentor_guardians WHERE student_id IN ({$placeholders}) ORDER BY is_primary DESC, id ASC");
     $stmt->execute($studentIds);
     $guardians = $stmt->fetchAll();
 

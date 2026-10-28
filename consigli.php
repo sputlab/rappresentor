@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (empty($title)) {
                 Helper::setFlash('danger', 'Il titolo dell\'argomento è obbligatorio.');
             } else {
-                $stmt = $db->prepare("INSERT INTO interclasse_topics (class_id, title, category, description, status) 
+                $stmt = $db->prepare("INSERT INTO rappresentor_interclasse_topics (class_id, title, category, description, status) 
                     VALUES (:cid, :ti, :ca, :de, 'proposto')");
                 $stmt->execute([
                     'cid' => $activeClassId,
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $status = $_POST['status'] ?? 'proposto';
             $outcome = trim($_POST['outcome_notes'] ?? '');
 
-            $stmt = $db->prepare("UPDATE interclasse_topics SET status = :st, outcome_notes = :ou WHERE id = :id AND class_id = :cid");
+            $stmt = $db->prepare("UPDATE rappresentor_interclasse_topics SET status = :st, outcome_notes = :ou WHERE id = :id AND class_id = :cid");
             $stmt->execute([
                 'st' => $status,
                 'ou' => $outcome,
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         if ($_POST['action'] === 'delete_topic') {
             $topicId = (int)($_POST['topic_id'] ?? 0);
-            $stmt = $db->prepare("DELETE FROM interclasse_topics WHERE id = :id AND class_id = :cid");
+            $stmt = $db->prepare("DELETE FROM rappresentor_interclasse_topics WHERE id = :id AND class_id = :cid");
             $stmt->execute(['id' => $topicId, 'cid' => $activeClassId]);
             Helper::setFlash('info', 'Argomento rimosso.');
             header('Location: consigli.php');
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Carica tutti gli argomenti della classe
-$stmt = $db->prepare("SELECT * FROM interclasse_topics WHERE class_id = :cid ORDER BY FIELD(status, 'proposto', 'in_discussione', 'approvato', 'risolto', 'archiviato'), id DESC");
+$stmt = $db->prepare("SELECT * FROM rappresentor_interclasse_topics WHERE class_id = :cid ORDER BY FIELD(status, 'proposto', 'in_discussione', 'approvato', 'risolto', 'archiviato'), id DESC");
 $stmt->execute(['cid' => $activeClassId]);
 $topics = $stmt->fetchAll();
 

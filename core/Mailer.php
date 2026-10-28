@@ -28,7 +28,7 @@ class Mailer
     private function loadSettings(): void
     {
         try {
-            $stmt = $this->db->query("SELECT key_name, key_value FROM settings WHERE key_name LIKE 'smtp_%' OR key_name = 'app_name'");
+            $stmt = $this->db->query("SELECT key_name, key_value FROM rappresentor_settings WHERE key_name LIKE 'smtp_%' OR key_name = 'app_name'");
             $rows = $stmt->fetchAll();
             foreach ($rows as $row) {
                 $this->settings[$row['key_name']] = $row['key_value'];

@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (empty($name)) {
                 Helper::setFlash('danger', 'Il nome della classe è obbligatorio.');
             } else {
-                $stmt = $db->prepare("INSERT INTO classes (name, school_type, school_year, school_name, notes) VALUES (:nm, :ty, :yr, :sc, :nt)");
+                $stmt = $db->prepare("INSERT INTO rappresentor_classes (name, school_type, school_year, school_name, notes) VALUES (:nm, :ty, :yr, :sc, :nt)");
                 $stmt->execute([
                     'nm' => $name,
                     'ty' => $type,
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $classId = (int)($_POST['class_id'] ?? 0);
             $archive = (int)($_POST['archive'] ?? 0);
 
-            $stmt = $db->prepare("UPDATE classes SET is_archived = :ar WHERE id = :id");
+            $stmt = $db->prepare("UPDATE rappresentor_classes SET is_archived = :ar WHERE id = :id");
             $stmt->execute(['ar' => $archive, 'id' => $classId]);
 
             Helper::setFlash('info', 'Stato classe aggiornato.');
@@ -53,9 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // Carica tutte le classi con conteggio alunni e saldo cassa
 $stmt = $db->query("SELECT c.*, 
-    (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.is_active = 1) as total_students,
-    (SELECT COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE -amount END), 0) FROM cashbox_transactions ct WHERE ct.class_id = c.id) as saldo
-    FROM classes c ORDER BY c.is_archived ASC, c.school_year DESC, c.name ASC");
+    (SELECT COUNT(*) FROM rappresentor_students s WHERE s.class_id = c.id AND s.is_active = 1) as total_students,
+    (SELECT COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE -amount END), 0) FROM rappresentor_cashbox_transactions ct WHERE ct.class_id = c.id) as saldo
+    FROM rappresentor_classes c ORDER BY c.is_archived ASC, c.school_year DESC, c.name ASC");
 $classesList = $stmt->fetchAll();
 ?>
 

@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($title) || $quota <= 0) {
             Helper::setFlash('danger', 'Titolo della raccolta e quota valida sono obbligatori.');
         } else {
-            $stmt = $db->prepare("INSERT INTO campaigns (class_id, title, description, quota_per_student, deadline) VALUES (:cid, :ti, :de, :qu, :dl)");
+            $stmt = $db->prepare("INSERT INTO rappresentor_campaigns (class_id, title, description, quota_per_student, deadline) VALUES (:cid, :ti, :de, :qu, :dl)");
             $stmt->execute([
                 'cid' => $activeClassId,
                 'ti' => $title,
@@ -42,11 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $campaignId = (int)$db->lastInsertId();
 
             // Inizializza riga di pagamento per tutti gli alunni attivi della classe
-            $stmtStu = $db->prepare("SELECT id FROM students WHERE class_id = :cid AND is_active = 1");
+            $stmtStu = $db->prepare("SELECT id FROM rappresentor_students WHERE class_id = :cid AND is_active = 1");
             $stmtStu->execute(['cid' => $activeClassId]);
             $students = $stmtStu->fetchAll();
 
-            $insertPay = $db->prepare("INSERT INTO payments (campaign_id, student_id, status, amount_paid) VALUES (:cid, :sid, 'non_pagato', 0.00)");
+            $insertPay = $db->prepare("INSERT INTO rappresentor_payments (campaign_id, student_id, status, amount_paid) VALUES (:cid, :sid, 'non_pagato', 0.00)");
             foreach ($students as $s) {
                 $insertPay->execute(['cid' => $campaignId, 'sid' => $s['id']]);
             }
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($amount <= 0 || empty($description)) {
             Helper::setFlash('danger', 'Importo e descrizione sono obbligatori.');
         } else {
-            $stmt = $db->prepare("INSERT INTO cashbox_transactions (class_id, campaign_id, type, amount, category, description, transaction_date, receipt_ref, created_by) 
+            $stmt = $db->prepare("INSERT INTO rappresentor_cashbox_transactions (class_id, campaign_id, type, amount, category, description, transaction_date, receipt_ref, created_by) 
                 VALUES (:cid, :cmp, :ty, :am, :cat, :de, :td, :rc, :cb)");
             $stmt->execute([
                 'cid' => $activeClassId,
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $notes = trim($_POST['notes'] ?? '');
         $paidAt = ($status === 'pagato') ? date('Y-m-d') : null;
 
-        $stmt = $db->prepare("UPDATE payments SET status = :st, amount_paid = :am, payment_method = :pm, paid_at = :pa, notes = :nt WHERE id = :id");
+        $stmt = $db->prepare("UPDATE rappresentor_payments SET status = :st, amount_paid = :am, payment_method = :pm, paid_at = :pa, notes = :nt WHERE id = :id");
         $stmt->execute([
             'st' => $status,
             'am' => $amount,
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'toggle_campaign_status') {
         $campaignId = (int)($_POST['campaign_id'] ?? 0);
         $isClosed = (int)($_POST['is_closed'] ?? 0);
-        $stmt = $db->prepare("UPDATE campaigns SET is_closed = :cl WHERE id = :id AND class_id = :cid");
+        $stmt = $db->prepare("UPDATE rappresentor_campaigns SET is_closed = :cl WHERE id = :id AND class_id = :cid");
         $stmt->execute(['cl' => $isClosed, 'id' => $campaignId, 'cid' => $activeClassId]);
         Helper::setFlash('info', 'Stato raccolta aggiornato.');
         header("Location: cassa.php?campaign_id={$campaignId}");
@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $stmt = $db->prepare("SELECT 
     COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
     COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
-    FROM cashbox_transactions WHERE class_id = :cid");
+    FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
 $stmt->execute(['cid' => $activeClassId]);
 $cashSummary = $stmt->fetch();
 $totalEntrate = (float)$cashSummary['total_entrate'];
@@ -139,10 +139,10 @@ $saldoCassa = $totalEntrate - $totalUscite;
 
 // 2. Carica Campagne Quote
 $stmt = $db->prepare("SELECT c.*, 
-    (SELECT COUNT(*) FROM payments p WHERE p.campaign_id = c.id AND p.status = 'pagato') as pagati_count,
-    (SELECT COUNT(*) FROM payments p WHERE p.campaign_id = c.id) as totale_alunni,
-    (SELECT COALESCE(SUM(amount_paid), 0) FROM payments p WHERE p.campaign_id = c.id) as totale_raccolto
-    FROM campaigns c 
+    (SELECT COUNT(*) FROM rappresentor_payments p WHERE p.campaign_id = c.id AND p.status = 'pagato') as pagati_count,
+    (SELECT COUNT(*) FROM rappresentor_payments p WHERE p.campaign_id = c.id) as totale_alunni,
+    (SELECT COALESCE(SUM(amount_paid), 0) FROM rappresentor_payments p WHERE p.campaign_id = c.id) as totale_raccolto
+    FROM rappresentor_campaigns c 
     WHERE c.class_id = :cid 
     ORDER BY c.is_closed ASC, c.id DESC");
 $stmt->execute(['cid' => $activeClassId]);
@@ -164,8 +164,8 @@ if ($selectedCampaignId > 0) {
     if ($selectedCampaign) {
         // Carica elenco alunni e relativo pagamento per la campagna
         $stmt = $db->prepare("SELECT p.*, s.first_name, s.last_name 
-            FROM payments p 
-            JOIN students s ON p.student_id = s.id 
+            FROM rappresentor_payments p 
+            JOIN rappresentor_students s ON p.student_id = s.id 
             WHERE p.campaign_id = :cmp AND s.is_active = 1 
             ORDER BY s.last_name ASC, s.first_name ASC");
         $stmt->execute(['cmp' => $selectedCampaignId]);
@@ -175,8 +175,8 @@ if ($selectedCampaignId > 0) {
 
 // 3. Movimenti Registro Cassa Recenti
 $stmt = $db->prepare("SELECT ct.*, u.name as user_name 
-    FROM cashbox_transactions ct 
-    LEFT JOIN users u ON ct.created_by = u.id 
+    FROM rappresentor_cashbox_transactions ct 
+    LEFT JOIN rappresentor_users u ON ct.created_by = u.id 
     WHERE ct.class_id = :cid 
     ORDER BY ct.transaction_date DESC, ct.id DESC LIMIT 50");
 $stmt->execute(['cid' => $activeClassId]);

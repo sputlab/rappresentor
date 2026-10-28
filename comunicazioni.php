@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $content = trim($_POST['content'] ?? '');
 
         if (!empty($title) && !empty($content)) {
-            $stmt = $db->prepare("INSERT INTO templates (title, category, content, is_default) VALUES (:ti, :ca, :co, 0)");
+            $stmt = $db->prepare("INSERT INTO rappresentor_templates (title, category, content, is_default) VALUES (:ti, :ca, :co, 0)");
             $stmt->execute(['ti' => $title, 'ca' => $category, 'co' => $content]);
             Helper::setFlash('success', 'Template salvato con successo!');
             header('Location: comunicazioni.php');
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // Carica tutti i template dal database
-$templates = $db->query("SELECT * FROM templates ORDER BY is_default DESC, title ASC")->fetchAll();
+$templates = $db->query("SELECT * FROM rappresentor_templates ORDER BY is_default DESC, title ASC")->fetchAll();
 
 // Dati dinamici classe attiva per sostituzione automatica variabili
 $className = $activeClass['name'] ?? 'Classe';
@@ -41,12 +41,12 @@ $className = $activeClass['name'] ?? 'Classe';
 $stmt = $db->prepare("SELECT 
     COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
     COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
-    FROM cashbox_transactions WHERE class_id = :cid");
+    FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
 $stmt->execute(['cid' => $activeClassId]);
 $cash = $stmt->fetch();
 $saldo = (float)($cash['total_entrate'] ?? 0) - (float)($cash['total_uscite'] ?? 0);
 
-$stmt = $db->prepare("SELECT transaction_date, description, amount FROM cashbox_transactions WHERE class_id = :cid AND type = 'uscita' ORDER BY transaction_date DESC, id DESC LIMIT 4");
+$stmt = $db->prepare("SELECT transaction_date, description, amount FROM rappresentor_cashbox_transactions WHERE class_id = :cid AND type = 'uscita' ORDER BY transaction_date DESC, id DESC LIMIT 4");
 $stmt->execute(['cid' => $activeClassId]);
 $recentExpenses = $stmt->fetchAll();
 $usciteText = "";
@@ -58,7 +58,7 @@ if (empty($usciteText)) {
 }
 
 // Ultima campagna quote attiva
-$stmt = $db->prepare("SELECT * FROM campaigns WHERE class_id = :cid AND is_closed = 0 ORDER BY id DESC LIMIT 1");
+$stmt = $db->prepare("SELECT * FROM rappresentor_campaigns WHERE class_id = :cid AND is_closed = 0 ORDER BY id DESC LIMIT 1");
 $stmt->execute(['cid' => $activeClassId]);
 $latestCampaign = $stmt->fetch();
 $quotaTitle = $latestCampaign['title'] ?? 'Cassa Comune';

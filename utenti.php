@@ -16,7 +16,7 @@ $canAdd = $auth->canAddUser();
 $activeCount = $auth->getActiveUsersCount();
 
 // Carica impostazione limite massimo utenti (default 5)
-$stmt = $db->query("SELECT key_value FROM settings WHERE key_name = 'max_users'");
+$stmt = $db->query("SELECT key_value FROM rappresentor_settings WHERE key_name = 'max_users'");
 $maxUsers = (int)($stmt->fetchColumn() ?: 5);
 
 // Gestione Azioni POST
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 Helper::setFlash('danger', 'Nome ed email valida sono obbligatori.');
             } else {
                 // Verifica email duplicata
-                $check = $db->prepare("SELECT id FROM users WHERE email = :email");
+                $check = $db->prepare("SELECT id FROM rappresentor_users WHERE email = :email");
                 $check->execute(['email' => $email]);
                 if ($check->fetch()) {
                     Helper::setFlash('danger', 'Un utente con questo indirizzo email è già registrato.');
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $tempPassword = bin2hex(random_bytes(4)) . '!' . rand(10, 99);
                     $passHash = password_hash($tempPassword, PASSWORD_DEFAULT);
 
-                    $stmt = $db->prepare("INSERT INTO users (name, email, password_hash, role, is_active) VALUES (:nm, :em, :ph, :ro, 1)");
+                    $stmt = $db->prepare("INSERT INTO rappresentor_users (name, email, password_hash, role, is_active) VALUES (:nm, :em, :ph, :ro, 1)");
                     $stmt->execute([
                         'nm' => $name,
                         'em' => $email,
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($userId === Auth::id()) {
                 Helper::setFlash('danger', 'Non puoi disattivare il tuo stesso account amministratore.');
             } else {
-                $stmt = $db->prepare("UPDATE users SET is_active = :ia WHERE id = :id");
+                $stmt = $db->prepare("UPDATE rappresentor_users SET is_active = :ia WHERE id = :id");
                 $stmt->execute(['ia' => $isActive, 'id' => $userId]);
                 Helper::setFlash('info', 'Stato utente aggiornato.');
                 header('Location: utenti.php');
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($userId === Auth::id()) {
                 Helper::setFlash('danger', 'Non puoi eliminare il tuo stesso account.');
             } else {
-                $stmt = $db->prepare("DELETE FROM users WHERE id = :id");
+                $stmt = $db->prepare("DELETE FROM rappresentor_users WHERE id = :id");
                 $stmt->execute(['id' => $userId]);
                 Helper::setFlash('info', 'Collaboratore eliminato.');
                 header('Location: utenti.php');
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Carica tutti gli utenti
-$users = $db->query("SELECT * FROM users ORDER BY is_active DESC, role ASC, name ASC")->fetchAll();
+$users = $db->query("SELECT * FROM rappresentor_users ORDER BY is_active DESC, role ASC, name ASC")->fetchAll();
 ?>
 
 <div class="page-header">

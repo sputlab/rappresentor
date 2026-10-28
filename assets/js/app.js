@@ -1,6 +1,6 @@
 /**
  * Rappresentor - Client JavaScript
- * Versione SemVer: 0.1.0
+ * Versione SemVer: 0.2.0
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,28 +11,49 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Gestione Sidebar su Mobile
+ * Gestione Sidebar Drawer & Bottom Nav su Mobile
  */
 function initMobileNav() {
-  const toggleBtn = document.querySelector('.mobile-nav-toggle');
+  const toggleBtns = document.querySelectorAll('.mobile-nav-toggle');
   const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
 
-  if (toggleBtn && sidebar) {
-    toggleBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
+  if (sidebar) {
+    toggleBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isOpen = sidebar.classList.contains('open');
+        if (isOpen) {
+          sidebar.classList.remove('open');
+          if (backdrop) backdrop.classList.remove('active');
+        } else {
+          sidebar.classList.add('open');
+          if (backdrop) backdrop.classList.add('active');
+        }
+      });
     });
 
-    // Chiudi la sidebar se si clicca fuori
-    document.addEventListener('click', (e) => {
-      if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+    if (backdrop) {
+      backdrop.addEventListener('click', () => {
         sidebar.classList.remove('open');
-      }
+        backdrop.classList.remove('active');
+      });
+    }
+
+    // Chiudi la sidebar quando viene cliccato un link
+    sidebar.querySelectorAll('.nav-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        if (window.innerWidth < 992) {
+          sidebar.classList.remove('open');
+          if (backdrop) backdrop.classList.remove('active');
+        }
+      });
     });
   }
 }
 
 /**
- * Gestione Modal Dialog
+ * Gestione Modal Dialogs
  */
 function initModals() {
   // Apertura modal tramite pulsanti data-modal-target
@@ -124,7 +145,7 @@ function fallbackCopy(text, successMessage) {
 }
 
 /**
- * Toast fluttuante di notifica
+ * Toast fluttuante di notifica (ottimizzato per mobile e desktop)
  */
 function showToast(message, type = 'info') {
   let container = document.querySelector('.toast-container');

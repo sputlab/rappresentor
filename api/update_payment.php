@@ -32,7 +32,7 @@ if (!in_array($status, $validStatuses, true) || $paymentId <= 0) {
 $paidAt = ($status === 'pagato') ? date('Y-m-d') : null;
 
 try {
-    $stmt = $db->prepare("UPDATE payments SET status = :st, amount_paid = :am, payment_method = :pm, paid_at = :pa, updated_at = NOW() WHERE id = :id");
+    $stmt = $db->prepare("UPDATE rappresentor_payments SET status = :st, amount_paid = :am, payment_method = :pm, paid_at = :pa, updated_at = NOW() WHERE id = :id");
     $stmt->execute([
         'st' => $status,
         'am' => $amount,

@@ -45,7 +45,7 @@ class Auth
             return ['success' => false, 'message' => 'Inserisci email e password.'];
         }
 
-        $stmt = $this->db->prepare("SELECT id, name, email, password_hash, role, is_active FROM users WHERE email = :email LIMIT 1");
+        $stmt = $this->db->prepare("SELECT id, name, email, password_hash, role, is_active FROM rappresentor_users WHERE email = :email LIMIT 1");
         $stmt->execute(['email' => $email]);
         $user = $stmt->fetch();
 
@@ -162,7 +162,7 @@ class Auth
      */
     public function getActiveUsersCount(): int
     {
-        $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE is_active = 1");
+        $stmt = $this->db->query("SELECT COUNT(*) FROM rappresentor_users WHERE is_active = 1");
         return (int)$stmt->fetchColumn();
     }
 
@@ -171,7 +171,7 @@ class Auth
      */
     public function canAddUser(): bool
     {
-        $stmt = $this->db->query("SELECT key_value FROM settings WHERE key_name = 'max_users'");
+        $stmt = $this->db->query("SELECT key_value FROM rappresentor_settings WHERE key_name = 'max_users'");
         $maxUsers = (int)($stmt->fetchColumn() ?: 5);
         return $this->getActiveUsersCount() < $maxUsers;
     }
@@ -182,7 +182,7 @@ class Auth
     public function generateResetToken(string $email): ?array
     {
         $email = trim(strtolower($email));
-        $stmt = $this->db->prepare("SELECT id, name, email FROM users WHERE email = :email AND is_active = 1 LIMIT 1");
+        $stmt = $this->db->prepare("SELECT id, name, email FROM rappresentor_users WHERE email = :email AND is_active = 1 LIMIT 1");
         $stmt->execute(['email' => $email]);
         $user = $stmt->fetch();
 
@@ -193,7 +193,7 @@ class Auth
         $token = bin2hex(random_bytes(32));
         $expiresAt = date('Y-m-d H:i:s', time() + 3600); // 1 ora di validità
 
-        $update = $this->db->prepare("UPDATE users SET reset_token = :token, reset_expires_at = :expires WHERE id = :id");
+        $update = $this->db->prepare("UPDATE rappresentor_users SET reset_token = :token, reset_expires_at = :expires WHERE id = :id");
         $update->execute([
             'token' => $token,
             'expires' => $expiresAt,
@@ -216,7 +216,7 @@ class Auth
             return null;
         }
 
-        $stmt = $this->db->prepare("SELECT id, name, email FROM users WHERE reset_token = :token AND reset_expires_at > NOW() AND is_active = 1 LIMIT 1");
+        $stmt = $this->db->prepare("SELECT id, name, email FROM rappresentor_users WHERE reset_token = :token AND reset_expires_at > NOW() AND is_active = 1 LIMIT 1");
         $stmt->execute(['token' => $token]);
         $user = $stmt->fetch();
 
@@ -234,7 +234,7 @@ class Auth
         }
 
         $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-        $stmt = $this->db->prepare("UPDATE users SET password_hash = :hash, reset_token = NULL, reset_expires_at = NULL WHERE id = :id");
+        $stmt = $this->db->prepare("UPDATE rappresentor_users SET password_hash = :hash, reset_token = NULL, reset_expires_at = NULL WHERE id = :id");
         return $stmt->execute([
             'hash' => $hash,
             'id' => $user['id']

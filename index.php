@@ -25,11 +25,11 @@ if (!$activeClassId) {
 }
 
 // 1. Dati anagrafica classe attiva
-$stmt = $db->prepare("SELECT COUNT(*) FROM students WHERE class_id = :cid AND is_active = 1");
+$stmt = $db->prepare("SELECT COUNT(*) FROM rappresentor_students WHERE class_id = :cid AND is_active = 1");
 $stmt->execute(['cid' => $activeClassId]);
 $totalStudents = (int)$stmt->fetchColumn();
 
-$stmt = $db->prepare("SELECT COUNT(*) FROM guardians g JOIN students s ON g.student_id = s.id WHERE s.class_id = :cid AND s.is_active = 1");
+$stmt = $db->prepare("SELECT COUNT(*) FROM rappresentor_guardians g JOIN rappresentor_students s ON g.student_id = s.id WHERE s.class_id = :cid AND s.is_active = 1");
 $stmt->execute(['cid' => $activeClassId]);
 $totalGuardians = (int)$stmt->fetchColumn();
 
@@ -37,7 +37,7 @@ $totalGuardians = (int)$stmt->fetchColumn();
 $stmt = $db->prepare("SELECT 
     COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
     COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
-    FROM cashbox_transactions WHERE class_id = :cid");
+    FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
 $stmt->execute(['cid' => $activeClassId]);
 $cashbox = $stmt->fetch();
 $totalEntrate = (float)($cashbox['total_entrate'] ?? 0);
@@ -46,23 +46,23 @@ $saldoCassa = $totalEntrate - $totalUscite;
 
 // 3. Campagne quote aperte
 $stmt = $db->prepare("SELECT c.*, 
-    (SELECT COUNT(*) FROM payments p WHERE p.campaign_id = c.id AND p.status = 'pagato') as pagati_count,
-    (SELECT COUNT(*) FROM students s WHERE s.class_id = c.class_id AND s.is_active = 1) as totale_alunni
-    FROM campaigns c 
+    (SELECT COUNT(*) FROM rappresentor_payments p WHERE p.campaign_id = c.id AND p.status = 'pagato') as pagati_count,
+    (SELECT COUNT(*) FROM rappresentor_students s WHERE s.class_id = c.class_id AND s.is_active = 1) as totale_alunni
+    FROM rappresentor_campaigns c 
     WHERE c.class_id = :cid AND c.is_closed = 0 
     ORDER BY c.deadline ASC, c.id DESC LIMIT 3");
 $stmt->execute(['cid' => $activeClassId]);
 $activeCampaigns = $stmt->fetchAll();
 
 // 4. Prossimi eventi e scadenze (nei prossimi 30 giorni)
-$stmt = $db->prepare("SELECT * FROM events 
+$stmt = $db->prepare("SELECT * FROM rappresentor_events 
     WHERE class_id = :cid AND event_date >= CURDATE() 
     ORDER BY event_date ASC, event_time ASC LIMIT 4");
 $stmt->execute(['cid' => $activeClassId]);
 $upcomingEvents = $stmt->fetchAll();
 
 // 5. Argomenti aperti per il Consiglio d'Interclasse
-$stmt = $db->prepare("SELECT * FROM interclasse_topics 
+$stmt = $db->prepare("SELECT * FROM rappresentor_interclasse_topics 
     WHERE class_id = :cid AND status IN ('proposto', 'in_discussione') 
     ORDER BY id DESC LIMIT 4");
 $stmt->execute(['cid' => $activeClassId]);

@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (empty($title) || empty($date)) {
                 Helper::setFlash('danger', 'Titolo e data dell\'evento sono obbligatori.');
             } else {
-                $stmt = $db->prepare("INSERT INTO events (class_id, title, event_type, event_date, event_time, location, description) 
+                $stmt = $db->prepare("INSERT INTO rappresentor_events (class_id, title, event_type, event_date, event_time, location, description) 
                     VALUES (:cid, :ti, :ty, :da, :tm, :lo, :de)");
                 $stmt->execute([
                     'cid' => $activeClassId,
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         if ($_POST['action'] === 'delete_event') {
             $eventId = (int)($_POST['event_id'] ?? 0);
-            $stmt = $db->prepare("DELETE FROM events WHERE id = :id AND class_id = :cid");
+            $stmt = $db->prepare("DELETE FROM rappresentor_events WHERE id = :id AND class_id = :cid");
             $stmt->execute(['id' => $eventId, 'cid' => $activeClassId]);
             Helper::setFlash('info', 'Evento rimosso dal calendario.');
             header('Location: calendario.php');
@@ -57,17 +57,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Carica eventi futuri e passati
-$stmt = $db->prepare("SELECT * FROM events WHERE class_id = :cid AND event_date >= CURDATE() ORDER BY event_date ASC, event_time ASC");
+$stmt = $db->prepare("SELECT * FROM rappresentor_events WHERE class_id = :cid AND event_date >= CURDATE() ORDER BY event_date ASC, event_time ASC");
 $stmt->execute(['cid' => $activeClassId]);
 $upcomingEvents = $stmt->fetchAll();
 
-$stmt = $db->prepare("SELECT * FROM events WHERE class_id = :cid AND event_date < CURDATE() ORDER BY event_date DESC LIMIT 15");
+$stmt = $db->prepare("SELECT * FROM rappresentor_events WHERE class_id = :cid AND event_date < CURDATE() ORDER BY event_date DESC LIMIT 15");
 $stmt->execute(['cid' => $activeClassId]);
 $pastEvents = $stmt->fetchAll();
 
 // Compleanni degli alunni del mese corrente
 $currentMonth = (int)date('m');
-$stmt = $db->prepare("SELECT first_name, last_name, birth_date FROM students WHERE class_id = :cid AND is_active = 1 AND birth_date IS NOT NULL AND MONTH(birth_date) = :m ORDER BY DAY(birth_date) ASC");
+$stmt = $db->prepare("SELECT first_name, last_name, birth_date FROM rappresentor_students WHERE class_id = :cid AND is_active = 1 AND birth_date IS NOT NULL AND MONTH(birth_date) = :m ORDER BY DAY(birth_date) ASC");
 $stmt->execute(['cid' => $activeClassId, 'm' => $currentMonth]);
 $birthdaysThisMonth = $stmt->fetchAll();
 ?>

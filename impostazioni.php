@@ -12,7 +12,7 @@ use Rappresentor\Core\Mailer;
 Auth::requireAdmin();
 
 // Carica impostazioni attuali
-$settingsRows = $db->query("SELECT key_name, key_value FROM settings")->fetchAll();
+$settingsRows = $db->query("SELECT key_name, key_value FROM rappresentor_settings")->fetchAll();
 $settings = [];
 foreach ($settingsRows as $row) {
     $settings[$row['key_name']] = $row['key_value'];
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $keysToUpdate['smtp_pass'] = $_POST['smtp_pass'];
             }
 
-            $stmt = $db->prepare("INSERT INTO settings (key_name, key_value) VALUES (:k, :v) ON DUPLICATE KEY UPDATE key_value = :v");
+            $stmt = $db->prepare("INSERT INTO rappresentor_settings (key_name, key_value) VALUES (:k, :v) ON DUPLICATE KEY UPDATE key_value = :v");
             foreach ($keysToUpdate as $k => $v) {
                 $stmt->execute(['k' => $k, 'v' => $v]);
             }

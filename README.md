@@ -1,14 +1,14 @@
 # 🎓 Rappresentor
 
-**Versione Corrente:** `0.1.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
-**Stack Tecnologico:** HTML5 • PHP 8.1+ (Nativo/Zero dipendenze esterne pesanti) • JavaScript (Vanilla) • MySQL / MariaDB  
+**Versione Corrente:** `0.2.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
+**Stack Tecnologico:** HTML5 • PHP 8.1+ (Nativo/Zero dipendenze esterne pesanti) • JavaScript (Vanilla Mobile-First) • MySQL / MariaDB (prefisso tabelle `rappresentor_`)  
 **Modello di Utilizzo:** Micro-SaaS Self-Hosted su dominio proprietario (supporto fino a un massimo di 5 collaboratori attivi in team).
 
 ---
 
 ## 📌 Cos'è Rappresentor?
 
-**Rappresentor** è una webapp progettata specificamente per supportare i **rappresentanti di classe** delle scuole italiane nello svolgimento delle loro tipiche attività di coordinamento. Spesso i rappresentanti sono genitori di alunni che devono gestire raccolte fondi, comunicazioni su chat WhatsApp, scadenze, deleghe e segnalazioni per gli insegnanti.
+**Rappresentor** è una webapp progettata specificamente per supportare i **rappresentanti di classe** delle scuole italiane nello svolgimento delle loro tipiche attività di coordinamento. L'interfaccia è progettata con un approccio **Mobile-First**: chi fa il rappresentante usa quasi sempre lo smartphone per gestire comunicazioni WhatsApp all'uscita da scuola, riscuotere quote e consultare scadenze.
 
 L'applicazione è concepita per essere adatta e modulabile per tutti i gradi scolastici:
 - 👶 **Asilo Nido** (0-3 anni: sezioni lattanti, semidivezzi, divezzi)
@@ -19,6 +19,13 @@ L'applicazione è concepita per essere adatta e modulabile per tutti i gradi sco
 ---
 
 ## 🚀 Caratteristiche Principali
+
+### 📱 Esperienza Mobile-First & Responsive
+- **Barra di Navigazione Inferiore Fissa (Mobile Bottom Bar)**: pensata per l'uso immediato a una mano su smartphone, offre accesso istantaneo a Home, Alunni, Cassa, WhatsApp e Altro.
+- **Slide-Over Drawer**: menu laterale a scomparsa per le funzioni avanzate e le impostazioni su schermi piccoli.
+- **Target Touch Ergonomici**: tutti i pulsanti e gli input rispettano le linee guida di accessibilità touch (minimo 44px di altezza) con font a 16px per evitare lo sgradevole auto-zoom di Safari su iPhone.
+- **Supporto Safe Area**: gestione integrata dei bordi arrotondati e barre di sistema dei moderni dispositivi mobili (`env(safe-area-inset-bottom)`).
+- **Progressive Enhancement su Desktop**: su schermi larghi la barra inferiore scompare automaticamente, trasformandosi in una sidebar completa a due o tre colonne.
 
 ### 1. 🎒 Anagrafica Alunni & Famiglie (Rubrica WhatsApp)
 - Elenco alunni con calcolo automatico dell'età e gestione **allergie/intolleranze alimentari** (cruciali per feste e merende).
@@ -70,6 +77,23 @@ L'applicazione è concepita per essere adatta e modulabile per tutti i gradi sco
   - Supporto nativo per **SMTP autenticato via socket** (STARTTLS porta 587, SSL porta 465) senza necessità di Composer o librerie terze.
   - Fallback automatico su `mail()` standard di PHP per ambienti hosting condivisi (es. Aruba, Register, cPanel).
   - Strumento integrato per testare l'invio email con un clic.
+
+---
+
+## 🗄️ Struttura Tabelle Database (Prefisso `rappresentor_`)
+
+Tutte le tabelle del database MySQL utilizzano il prefisso dedicato `rappresentor_`:
+- `rappresentor_settings`: impostazioni applicative e configurazione SMTP.
+- `rappresentor_users`: collaboratori (massimo 5 attivi) e token di reset password.
+- `rappresentor_classes`: sezioni e classi dall'asilo nido alle medie.
+- `rappresentor_students`: anagrafica alunni, allergie e note speciali.
+- `rappresentor_guardians`: genitori e contatti telefonici/email con consenso WhatsApp.
+- `rappresentor_campaigns`: raccolte quote di classe.
+- `rappresentor_payments`: stato versamento quota per ciascun alunno.
+- `rappresentor_cashbox_transactions`: movimenti di entrata e uscita del fondo cassa.
+- `rappresentor_events`: calendario eventi, scadenze e riunioni.
+- `rappresentor_interclasse_topics`: istanze dei genitori per i consigli con i docenti.
+- `rappresentor_templates`: modelli preimpostati e personalizzati per WhatsApp.
 
 ---
 

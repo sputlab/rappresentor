@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Rappresentor - Installatore Guidato Web
- * Versione SemVer: 0.1.0
+ * Versione SemVer: 0.2.0
  */
 
 $configFile = __DIR__ . '/config/config.php';
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isInstalled) {
             $pdo->exec($sql);
 
             // 3. Inserimento Prima Classe
-            $stmt = $pdo->prepare("INSERT INTO classes (name, school_type, school_year, school_name) VALUES (:name, :type, :year, :school)");
+            $stmt = $pdo->prepare("INSERT INTO rappresentor_classes (name, school_type, school_year, school_name) VALUES (:name, :type, :year, :school)");
             $stmt->execute([
                 'name' => $className,
                 'type' => $schoolType,
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isInstalled) {
 
             // 4. Inserimento Primo Utente Admin
             $passHash = password_hash($adminPass, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, role, is_active) VALUES (:name, :email, :pass, 'admin', 1)");
+            $stmt = $pdo->prepare("INSERT INTO rappresentor_users (name, email, password_hash, role, is_active) VALUES (:name, :email, :pass, 'admin', 1)");
             $stmt->execute([
                 'name' => $adminName,
                 'email' => $adminEmail,
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isInstalled) {
             ]);
 
             // 5. Aggiornamento impostazioni scuola
-            $stmt = $pdo->prepare("INSERT INTO settings (key_name, key_value) VALUES ('school_name', :sname) ON DUPLICATE KEY UPDATE key_value = :sname");
+            $stmt = $pdo->prepare("INSERT INTO rappresentor_settings (key_name, key_value) VALUES ('school_name', :sname) ON DUPLICATE KEY UPDATE key_value = :sname");
             $stmt->execute(['sname' => $schoolName]);
 
             // 6. Scrittura file config/config.php
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isInstalled) {
                 "return [\n" .
                 "    'app' => [\n" .
                 "        'name' => 'Rappresentor',\n" .
-                "        'version' => '0.1.0',\n" .
+                "        'version' => '0.2.0',\n" .
                 "        'env' => 'production'\n" .
                 "    ],\n" .
                 "    'db' => [\n" .
@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isInstalled) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Installazione Rappresentor v0.1.0</title>
+  <title>Installazione Rappresentor v0.2.0</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
     .install-container { max-width: 680px; margin: 40px auto; padding: 0 16px; }
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isInstalled) {
 <div class="install-container">
   <div class="install-card">
     <div class="install-header">
-      <h1>🎓 Rappresentor <span style="font-size:0.8rem; background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:99px;">v0.1.0</span></h1>
+      <h1>🎓 Rappresentor <span style="font-size:0.8rem; background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:99px;">v0.2.0</span></h1>
       <p>Piattaforma Web per Rappresentanti di Classe (Asilo Nido - Medie)</p>
     </div>
 

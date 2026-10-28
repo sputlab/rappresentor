@@ -4,6 +4,12 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.3.1] - 2026-10-28
+### Corretto
+- **Setup iniziale e importazione manuale**: risolto il problema per cui `install.php`, rilevando il file `config/config.php` creato manualmente o in seguito a import manuale di `schema.sql`, considerava l'applicazione già installata senza consentire la creazione del primo account amministratore.
+- `install.php` ora controlla l'effettiva presenza di utenti admin attivi nel database: se il database è connesso ma non è presente alcun amministratore, viene mostrato il form dedicato per registrare il primo utente amministratore e la prima classe.
+- `login.php` reindirizza automaticamente a `install.php` se rileva l'assenza di account amministratore nel database.
+
 ## [0.3.0] - 2026-10-28
 ### Aggiunto
 - **Master Icon Ufficiale**:

@@ -1,6 +1,6 @@
 # 🎓 Rappresentor
 
-**Versione Corrente:** `0.3.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
+**Versione Corrente:** `0.3.1` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
 **Stack Tecnologico:** HTML5 • PHP 8.1+ (Nativo/Zero dipendenze esterne pesanti) • JavaScript (Vanilla Mobile-First & Service Worker) • Progressive Web App (PWA) • MySQL / MariaDB (prefisso tabelle `rappresentor_`)  
 **Modello di Utilizzo:** Micro-SaaS Self-Hosted su dominio proprietario (supporto fino a un massimo di 5 collaboratori attivi in team).
 

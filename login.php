@@ -12,6 +12,18 @@ if (Auth::check()) {
     exit;
 }
 
+// Se il database è collegato ma non esiste ancora nessun account admin, reindirizza a install.php
+try {
+    $adminCount = (int)$db->query("SELECT COUNT(*) FROM rappresentor_users WHERE role = 'admin' AND is_active = 1")->fetchColumn();
+    if ($adminCount === 0) {
+        header('Location: install.php');
+        exit;
+    }
+} catch (\Throwable $e) {
+    header('Location: install.php');
+    exit;
+}
+
 $error = '';
 $flash = Helper::getFlash();
 

@@ -1,20 +1,29 @@
 # 🎓 Rappresentor
 
-**Versione Corrente:** `0.2.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
-**Stack Tecnologico:** HTML5 • PHP 8.1+ (Nativo/Zero dipendenze esterne pesanti) • JavaScript (Vanilla Mobile-First) • MySQL / MariaDB (prefisso tabelle `rappresentor_`)  
+**Versione Corrente:** `0.3.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
+**Stack Tecnologico:** HTML5 • PHP 8.1+ (Nativo/Zero dipendenze esterne pesanti) • JavaScript (Vanilla Mobile-First & Service Worker) • Progressive Web App (PWA) • MySQL / MariaDB (prefisso tabelle `rappresentor_`)  
 **Modello di Utilizzo:** Micro-SaaS Self-Hosted su dominio proprietario (supporto fino a un massimo di 5 collaboratori attivi in team).
 
 ---
 
 ## 📌 Cos'è Rappresentor?
 
-**Rappresentor** è una webapp progettata specificamente per supportare i **rappresentanti di classe** delle scuole italiane nello svolgimento delle loro tipiche attività di coordinamento. L'interfaccia è progettata con un approccio **Mobile-First**: chi fa il rappresentante usa quasi sempre lo smartphone per gestire comunicazioni WhatsApp all'uscita da scuola, riscuotere quote e consultare scadenze.
+**Rappresentor** è una Progressive Web App (PWA) progettata specificamente per supportare i **rappresentanti di classe** delle scuole italiane nello svolgimento delle loro tipiche attività di coordinamento. L'interfaccia è progettata con un approccio **Mobile-First** e può essere **installata direttamente come applicazione nativa** sulla schermata Home di smartphone iOS e Android o su desktop.
 
 L'applicazione è concepita per essere adatta e modulabile per tutti i gradi scolastici:
 - 👶 **Asilo Nido** (0-3 anni: sezioni lattanti, semidivezzi, divezzi)
 - 🎨 **Scuola dell'Infanzia / Materna** (3-6 anni: sezioni eterogenee o omogenee)
 - 🎒 **Scuola Primaria / Elementari** (6-11 anni: classi 1ª-5ª)
 - 📐 **Scuola Secondaria di I Grado / Medie** (11-14 anni: classi 1ª-3ª)
+
+---
+
+## 📲 Funzionalità Progressive Web App (PWA)
+
+- **Installabile con un click**: supporto nativo per l'installazione su Android, iOS (Aggiungi a Schermata Home) e Desktop (Chrome/Edge/Safari).
+- **Icona Master & Set Completo**: Master icon SVG (`assets/icons/master-icon.svg`), icone 512x512, 192x192, versioni *Maskable* per Android, `apple-touch-icon.png` per iPhone/iPad e favicon vettoriali.
+- **Supporto Offline & Service Worker (`sw.js`)**: caching intelligente degli asset applicativi e pagina di cortesia dedicata ([`offline.html`](file:///Users/stefanosoranzio/Sputlab/WebApps/Rappresentor/offline.html)) nel caso in cui la connessione cada all'interno degli edifici scolastici.
+- **Web App Manifest (`manifest.webmanifest`)**: definisce colori del tema (`#2563eb`), modalità *standalone* a tutto schermo e **scorciatoie rapide** (Alunni, Cassa, WhatsApp, Calendario) accessibili tenendo premuta l'icona dell'app sullo smartphone.
 
 ---
 

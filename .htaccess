@@ -16,3 +16,18 @@ Options -Indexes
     Header set X-Frame-Options "SAMEORIGIN"
     Header set X-XSS-Protection "1; mode=block"
 </IfModule>
+
+# Supporto PWA & MIME Types
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+    AddType application/javascript .js
+    AddType image/svg+xml .svg
+</IfModule>
+
+<Files "sw.js">
+    Header set Service-Worker-Allowed "/"
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+</Files>
+<Files "manifest.webmanifest">
+    Header set Cache-Control "no-cache"
+</Files>

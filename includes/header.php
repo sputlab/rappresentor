@@ -24,6 +24,18 @@ $currentScript = basename($_SERVER['PHP_SELF']);
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= isset($pageTitle) ? Helper::e($pageTitle) . ' - ' : '' ?>Rappresentor</title>
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="assets/icons/favicon-32x32.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Rappresentor">
+
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -33,7 +45,7 @@ $currentScript = basename($_SERVER['PHP_SELF']);
     <div style="display: flex; align-items: center; gap: 14px;">
       <button class="mobile-nav-toggle" aria-label="Apri menu">☰</button>
       <a href="index.php" class="brand">
-        <span class="brand-icon">🎓</span>
+        <img src="assets/icons/favicon.svg" alt="Logo" width="28" height="28" style="vertical-align: middle;">
         <span>Rappresentor</span>
         <span class="brand-badge">v<?= Helper::e($appVersion) ?></span>
       </a>
@@ -119,6 +131,11 @@ $currentScript = basename($_SERVER['PHP_SELF']);
             <span>Impostazioni & Mail</span>
           </a>
         <?php endif; ?>
+
+        <button type="button" class="nav-item" data-pwa-install style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: var(--primary); font-family: inherit;">
+          <span class="nav-icon">📲</span>
+          <span>Installa App</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -129,6 +146,18 @@ $currentScript = basename($_SERVER['PHP_SELF']);
 
     <!-- Main Content -->
     <main class="main-content">
+      <!-- Banner di Installazione PWA -->
+      <div class="pwa-banner" id="pwaInstallBanner">
+        <div class="pwa-banner-content">
+          <img src="assets/icons/favicon.svg" alt="App Icon" width="28" height="28">
+          <div>
+            <strong>Installa Rappresentor</strong>
+            <div style="font-size: 0.78rem; opacity: 0.9;">Accedi rapidamente con un tocco dalla schermata Home</div>
+          </div>
+        </div>
+        <button type="button" class="pwa-banner-btn" data-pwa-install>Installa</button>
+      </div>
+
       <?php if ($flash): ?>
         <div class="alert alert-<?= Helper::e($flash['type']) ?>">
           <div>

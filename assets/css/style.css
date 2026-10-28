@@ -643,6 +643,40 @@ textarea.form-control {
   gap: 14px;
 }
 
+/* PWA Install Banner */
+.pwa-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, var(--primary), #1d4ed8);
+  color: white;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-md);
+  gap: 12px;
+}
+
+.pwa-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+}
+
+.pwa-banner-btn {
+  background: white;
+  color: var(--primary);
+  font-weight: 700;
+  border: none;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  box-shadow: var(--shadow-sm);
+}
+
 /* ==========================================================================
    Alert Flash
    ========================================================================== */

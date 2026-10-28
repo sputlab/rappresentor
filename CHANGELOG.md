@@ -4,6 +4,18 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.3.0] - 2026-10-28
+### Aggiunto
+- **Master Icon Ufficiale**:
+  - Progettata l'icona master vettoriale SVG con simbolo del tocco accademico, scudo di rappresentanza scuola-famiglia e stella dorata (`assets/icons/master-icon.svg` e `assets/icons/master-icon-maskable.svg`).
+  - Generato l'intero set di icone raster PNG ad alta definizione: `icon-512x512.png`, `icon-192x192.png`, versioni maskable adattive per Android (`icon-maskable-512x512.png`, `icon-maskable-192x192.png`), icona Apple iOS (`apple-touch-icon.png`), favicons multi-risoluzione (`favicon-32x32.png`, `favicon-16x16.png`, `favicon.svg`, `favicon.ico`).
+- **Trasformazione in Progressive Web App (PWA)**:
+  - Creato Web App Manifest standard W3C (`manifest.webmanifest` e `manifest.json`) con scorciatoie rapide per *Alunni*, *Cassa*, *WhatsApp* e *Calendario*.
+  - Implementato Service Worker (`sw.js`) con cache versionata, pre-caching della shell applicativa e strategia di navigazione *Network-First* con fallback offline.
+  - Pagina dedicata di fallback per assenza di connessione (`offline.html`) per garantire continuità di utilizzo nei plessi scolastici con scarsa ricezione.
+  - Integrazione banner e trigger interattivo di installazione per smartphone (Android `beforeinstallprompt` ed istruzioni guidate per Safari iOS).
+  - Configurazione MIME types e regole di caching specifiche in `.htaccess`.
+
 ## [0.2.0] - 2026-10-28
 ### Aggiunto
 - **Prefisso tabelle Database**: implementato il prefisso obbligatorio `rappresentor_` su tutte le 11 tabelle del database MySQL e relative query applicative (`rappresentor_settings`, `rappresentor_users`, `rappresentor_classes`, `rappresentor_students`, `rappresentor_guardians`, `rappresentor_campaigns`, `rappresentor_payments`, `rappresentor_cashbox_transactions`, `rappresentor_events`, `rappresentor_interclasse_topics`, `rappresentor_templates`).

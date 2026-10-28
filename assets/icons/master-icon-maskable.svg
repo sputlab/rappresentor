@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Sfondo gradiente pieno per mascheramento Android (adaptive icon) -->
+    <linearGradient id="maskableBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="50%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+
+    <!-- Gradiente nappa e stella dorata -->
+    <linearGradient id="goldGradMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Gradiente scudo/accento -->
+    <linearGradient id="shieldGradMask" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e0e7ff"/>
+    </linearGradient>
+
+    <filter id="softShadowMask" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Sfondo pieno 100% senza bordi arrotondati (safe per adaptive icon mask) -->
+  <rect width="512" height="512" fill="url(#maskableBg)"/>
+
+  <!-- Luce centrale -->
+  <circle cx="256" cy="240" r="170" fill="#3b82f6" opacity="0.25"/>
+
+  <!-- Elementi scalati all'interno della Safe Zone dell'80% -->
+  <g transform="translate(256, 256) scale(0.78) translate(-256, -256)" filter="url(#softShadowMask)">
+    <!-- Scudo -->
+    <path d="M 256 180
+             C 320 180, 360 210, 360 270
+             C 360 350, 290 395, 256 415
+             C 222 395, 152 350, 152 270
+             C 152 210, 192 180, 256 180 Z"
+          fill="url(#shieldGradMask)"/>
+
+    <!-- Figure stilizzate genitore + alunno -->
+    <circle cx="224" cy="254" r="22" fill="#2563eb"/>
+    <path d="M 188 320 C 188 288, 260 288, 260 320 Z" fill="#2563eb"/>
+
+    <circle cx="288" cy="272" r="16" fill="#f59e0b"/>
+    <path d="M 262 322 C 262 298, 314 298, 314 322 Z" fill="#f59e0b"/>
+
+    <!-- Stella Dorata -->
+    <g transform="translate(256, 352) scale(0.9)">
+      <polygon points="0,-18 5,-5 18,-5 8,4 12,17 0,9 -12,17 -8,4 -18,-5 -5,-5" fill="url(#goldGradMask)"/>
+    </g>
+
+    <!-- Tocco accademico -->
+    <path d="M 196 160 C 196 178, 316 178, 316 160 C 316 142, 196 142, 196 160 Z" fill="#1e293b"/>
+    <polygon points="256,92 396,140 256,188 116,140" fill="#0f172a"/>
+    <polygon points="256,98 384,140 256,182 128,140" fill="#1e293b"/>
+    <circle cx="256" cy="140" r="11" fill="url(#goldGradMask)"/>
+    <path d="M 256 140 Q 340 150, 368 200" fill="none" stroke="url(#goldGradMask)" stroke-width="7" stroke-linecap="round"/>
+    <rect x="362" y="196" width="12" height="8" rx="3" fill="url(#goldGradMask)"/>
+    <path d="M 362 204 L 358 244 L 378 244 L 374 204 Z" fill="url(#goldGradMask)"/>
+  </g>
+</svg>

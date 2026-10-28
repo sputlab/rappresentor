@@ -1,0 +1,77 @@
+{
+  "id": "rappresentor-pwa",
+  "name": "Rappresentor - Gestione Rappresentanti di Classe",
+  "short_name": "Rappresentor",
+  "description": "Piattaforma di supporto per rappresentanti di classe delle scuole dall'asilo nido alle medie.",
+  "start_url": "index.php",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "lang": "it-IT",
+  "dir": "ltr",
+  "categories": ["education", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "assets/icons/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Alunni & Famiglie",
+      "short_name": "Alunni",
+      "description": "Rubrica genitori e alunni della classe",
+      "url": "alunni.php",
+      "icons": [{ "src": "assets/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Cassa & Quote",
+      "short_name": "Cassa",
+      "description": "Gestione quote e rendiconti fondo cassa",
+      "url": "cassa.php",
+      "icons": [{ "src": "assets/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Messaggi WhatsApp",
+      "short_name": "WhatsApp",
+      "description": "Template comunicazioni per gruppi genitori",
+      "url": "comunicazioni.php",
+      "icons": [{ "src": "assets/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Scadenze & Eventi",
+      "short_name": "Calendario",
+      "description": "Riunioni, uscite didattiche e compleanni",
+      "url": "calendario.php",
+      "icons": [{ "src": "assets/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

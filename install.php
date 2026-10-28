@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Rappresentor - Installatore Guidato Web
- * Versione SemVer: 0.2.0
+ * Versione SemVer: 0.3.0
  */
 
 $configFile = __DIR__ . '/config/config.php';
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isInstalled) {
                 "return [\n" .
                 "    'app' => [\n" .
                 "        'name' => 'Rappresentor',\n" .
-                "        'version' => '0.2.0',\n" .
+                "        'version' => '0.3.0',\n" .
                 "        'env' => 'production'\n" .
                 "    ],\n" .
                 "    'db' => [\n" .
@@ -123,7 +123,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isInstalled) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Installazione Rappresentor v0.2.0</title>
+  <title>Installazione Rappresentor v0.3.0</title>
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="assets/icons/favicon-32x32.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Rappresentor">
+
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
     .install-container { max-width: 680px; margin: 40px auto; padding: 0 16px; }
@@ -141,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isInstalled) {
 <div class="install-container">
   <div class="install-card">
     <div class="install-header">
-      <h1>🎓 Rappresentor <span style="font-size:0.8rem; background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:99px;">v0.2.0</span></h1>
+      <h1>🎓 Rappresentor <span style="font-size:0.8rem; background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:99px;">v0.3.0</span></h1>
       <p>Piattaforma Web per Rappresentanti di Classe (Asilo Nido - Medie)</p>
     </div>
 

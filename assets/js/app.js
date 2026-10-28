@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initModals();
   initClipboardButtons();
   initQuickFilters();
+  initServiceWorker();
+  initPwaInstallPrompt();
 });
 
 /**
@@ -214,4 +216,63 @@ async function updatePaymentStatus(paymentId, status, csrfToken) {
   } catch (e) {
     showToast('Errore di connessione di rete.', 'danger');
   }
+}
+
+/**
+ * Registrazione Service Worker per Progressive Web App (PWA)
+ */
+function initServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => {
+          // Service worker registrato con successo
+        })
+        .catch((err) => {
+          console.warn('Registrazione ServiceWorker fallita:', err);
+        });
+    });
+  }
+}
+
+/**
+ * Gestione banner di installazione PWA (Aggiungi alla Schermata Home)
+ */
+let deferredPrompt = null;
+
+function initPwaInstallPrompt() {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Previeni apertura automatica prompt predefinito del browser
+    e.preventDefault();
+    deferredPrompt = e;
+
+    // Mostra banner o pulsante installa se presente
+    const installBanner = document.getElementById('pwaInstallBanner');
+    if (installBanner) {
+      installBanner.style.display = 'flex';
+    }
+  });
+
+  document.querySelectorAll('[data-pwa-install]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          showToast('Installazione avviata! Troverai Rappresentor tra le tue app.', 'success');
+        }
+        deferredPrompt = null;
+        const installBanner = document.getElementById('pwaInstallBanner');
+        if (installBanner) installBanner.style.display = 'none';
+      } else {
+        // Se iOS Safari o browser senza prompt automatico
+        showToast('Su iOS: tocca il tasto Condividi (icona con freccia in su) e seleziona "Aggiungi a schermata Home".', 'info');
+      }
+    });
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    showToast('Rappresentor installato con successo sulla tua schermata Home! 🎉', 'success');
+  });
 }

@@ -40,13 +40,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Accedi - Rappresentor</title>
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="assets/icons/favicon-32x32.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Rappresentor">
+
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="auth-body">
 
 <div class="auth-card">
   <div class="auth-header">
-    <div class="auth-logo">🎓</div>
+    <div class="auth-logo">
+      <img src="assets/icons/master-icon.svg" alt="Rappresentor Logo" width="64" height="64" style="border-radius: 16px; box-shadow: var(--shadow-md);">
+    </div>
     <h1 class="auth-title">Rappresentor</h1>
     <p class="auth-subtitle">Piattaforma di supporto per Rappresentanti di Classe</p>
   </div>

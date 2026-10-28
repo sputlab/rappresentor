@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Rappresentor</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .offline-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      text-align: center;
+      background: var(--bg-body);
+    }
+    .offline-card {
+      max-width: 440px;
+      width: 100%;
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      padding: 36px 24px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-color);
+    }
+    .offline-icon {
+      font-size: 3.5rem;
+      margin-bottom: 14px;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+<div class="offline-container">
+  <div class="offline-card">
+    <div class="offline-icon">📡</div>
+    <h1 style="font-size: 1.4rem; font-weight: 700; margin: 0 0 8px; color: var(--text-primary);">
+      Sei offline
+    </h1>
+    <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0 0 24px; line-height: 1.5;">
+      Sembra che la connessione Internet sia assente o debole (succede spesso all'interno dei plessi scolastici!).
+    </p>
+
+    <div style="background: var(--bg-surface-alt); padding: 14px; border-radius: var(--radius-md); font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 24px; text-align: left;">
+      💡 <strong>Suggerimento:</strong> Non appena rientri sotto copertura di rete o ti colleghi al Wi-Fi, tocca il pulsante qui sotto per ricaricare la pagina.
+    </div>
+
+    <div>
+      <button onclick="window.location.reload();" class="btn btn-primary btn-lg" style="width: 100%;">
+        🔄 Riprova Connessione
+      </button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

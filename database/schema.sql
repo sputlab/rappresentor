@@ -1,5 +1,5 @@
 -- Rappresentor Database Schema
--- Versione: 0.2.0
+-- Versione: 0.3.0
 -- Tutte le tabelle utilizzano il prefisso obbligatorio `rappresentor_`
 -- Charset: utf8mb4 per supporto caratteri speciali ed emoji
 
@@ -186,7 +186,7 @@ INSERT INTO `rappresentor_templates` (`title`, `category`, `content`, `is_defaul
 -- Impostazioni di default
 INSERT INTO `rappresentor_settings` (`key_name`, `key_value`) VALUES
 ('app_name', 'Rappresentor'),
-('app_version', '0.2.0'),
+('app_version', '0.3.0'),
 ('school_year', '2026/2027'),
 ('max_users', '5'),
 ('smtp_enabled', '0'),

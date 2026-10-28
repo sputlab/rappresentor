@@ -4,6 +4,17 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.4.0] - 2026-10-29
+### Aggiunto
+- **Modifica Collaboratori Esistenti**: implementata la funzionalità completa di modifica in `utenti.php` con modale dedicato. Gli amministratori possono ora aggiornare nome, indirizzo email, ruolo (`admin`, `rappresentante`, `collaboratore`), stato di attivazione e reimpostare opzionalmente la password dei collaboratori.
+- **Pagina Changelog & Novità (`changelog.php`)**: introdotta una pagina interna dedicata che visualizza la cronologia di tutti i rilasci dell'applicazione con schede visive, badge semantici per ogni categoria e indicazione della versione attualmente installata.
+- **Selettore Classe Mobile nel Burger Menu**: su schermi mobile (< 992px), il selettore della classe/sezione attiva è stato spostato dalla barra di navigazione superiore all'interno del menu laterale (burger menu), eliminando il sovraffollamento visivo della testata su smartphone.
+
+### Modificato
+- **Pulizia Titolo Header**: rimosso il badge con la versione (`v...`) dal logo/titolo principale "Rappresentor" nella barra di navigazione superiore per una resa visiva più pulita.
+- **Footer Burger Menu**: sostituita l'etichetta `SemVer` con `Rappresentor` e trasformato il numero di versione in un link interattivo che conduce direttamente a `changelog.php`.
+- Aggiornato cache-busting asset (`?v=0.4.0`) e Service Worker PWA (`rappresentor-cache-v0.4.0`).
+
 ## [0.3.4] - 2026-10-28
 ### Corretto
 - **Scorrimento Verticale Modali (Nuovo Alunno & Form)**: risolto il blocco dello scorrimento nei modali con form estesi (come *Nuovo Alunno* in `alunni.php` contenente dati studente, note, allergie e recapiti famiglia).

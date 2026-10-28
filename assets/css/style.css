@@ -369,6 +369,55 @@ a:hover {
   align-items: center;
 }
 
+.sidebar-footer a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sidebar-footer a:hover {
+  color: var(--primary-dark);
+}
+
+/* Selettore Classe all'interno del Burger Menu su Mobile */
+.sidebar-class-picker {
+  padding: 0 16px 14px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-class-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.sidebar-class-select-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface-alt);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.sidebar-class-select {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+}
+
 .mobile-nav-toggle {
   background: none;
   border: none;
@@ -976,5 +1025,16 @@ textarea.form-control {
 
   .toast-container {
     bottom: 24px;
+  }
+
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Visibility Helper per Mobile (< 992px) */
+@media (max-width: 991px) {
+  .desktop-only {
+    display: none !important;
   }
 }

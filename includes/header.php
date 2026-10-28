@@ -47,13 +47,12 @@ $currentScript = basename($_SERVER['PHP_SELF']);
       <a href="index.php" class="brand">
         <img src="assets/icons/favicon.svg" alt="Logo" width="28" height="28" style="vertical-align: middle;">
         <span>Rappresentor</span>
-        <span class="brand-badge">v<?= Helper::e($appVersion) ?></span>
       </a>
     </div>
 
-    <!-- Selettore Sezione / Classe Attiva -->
+    <!-- Selettore Sezione / Classe Attiva (Visibile su Desktop) -->
     <?php if (!empty($allClasses)): ?>
-      <div class="class-switcher">
+      <div class="class-switcher desktop-only">
         <span>🏫</span>
         <select onchange="window.location.href='?switch_class='+this.value" title="Seleziona la classe da gestire">
           <?php foreach ($allClasses as $cls): 
@@ -66,7 +65,7 @@ $currentScript = basename($_SERVER['PHP_SELF']);
         </select>
       </div>
     <?php else: ?>
-      <div style="font-size: 0.85rem; color: var(--text-muted);">
+      <div class="desktop-only" style="font-size: 0.85rem; color: var(--text-muted);">
         <a href="classi.php" class="btn btn-sm btn-primary">+ Crea Prima Classe</a>
       </div>
     <?php endif; ?>
@@ -84,6 +83,29 @@ $currentScript = basename($_SERVER['PHP_SELF']);
   <div class="app-container">
     <!-- Sidebar -->
     <aside class="sidebar">
+      <!-- Selettore Sezione / Classe Attiva (Visibile su Mobile all'interno del Burger Menu) -->
+      <?php if (!empty($allClasses)): ?>
+        <div class="sidebar-class-picker mobile-only">
+          <label class="sidebar-class-label">Classe Attiva</label>
+          <div class="sidebar-class-select-wrap">
+            <span style="font-size: 1.1rem;">🏫</span>
+            <select class="sidebar-class-select" onchange="window.location.href='?switch_class='+this.value" title="Seleziona la classe da gestire">
+              <?php foreach ($allClasses as $cls): 
+                $typeInfo = Helper::schoolTypeDetails($cls['school_type']);
+              ?>
+                <option value="<?= (int)$cls['id'] ?>" <?= ((int)$cls['id'] === (int)$activeClassId) ? 'selected' : '' ?>>
+                  <?= $typeInfo['icon'] ?> <?= Helper::e($cls['name']) ?> (<?= Helper::e($cls['school_year']) ?>)
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+      <?php else: ?>
+        <div class="sidebar-class-picker mobile-only">
+          <a href="classi.php" class="btn btn-sm btn-primary" style="display: block; text-align: center;">+ Crea Prima Classe</a>
+        </div>
+      <?php endif; ?>
+
       <nav class="sidebar-nav">
         <a href="index.php" class="nav-item <?= $currentScript === 'index.php' ? 'active' : '' ?>">
           <span class="nav-icon">📊</span>
@@ -139,8 +161,7 @@ $currentScript = basename($_SERVER['PHP_SELF']);
       </nav>
 
       <div class="sidebar-footer">
-        <span>SemVer v<?= Helper::e($appVersion) ?></span>
-        <a href="https://semver.org" target="_blank" rel="noopener" style="color: var(--text-muted); font-size: 0.7rem;">info</a>
+        <span>Rappresentor <a href="changelog.php" title="Visualizza Changelog e novità">v<?= Helper::e($appVersion) ?></a></span>
       </div>
     </aside>
 

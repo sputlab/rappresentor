@@ -127,7 +127,7 @@ require_once __DIR__ . '/includes/header.php';
         <div style="background: var(--bg-surface-alt); padding: 14px; border-radius: var(--radius-md); font-size: 0.85rem; color: var(--text-secondary); margin-top: 14px;">
           <strong>Informazioni Versione SemVer:</strong><br>
           Versione corrente dell'applicazione: <code>v<?= Helper::e(Helper::getAppVersion()) ?></code><br>
-          File di tracciamento modifiche: <code>CHANGELOG.md</code>
+          File di tracciamento modifiche: <a href="changelog.php" style="color: var(--primary); text-decoration: underline; font-weight: 600;">CHANGELOG.md (Visualizza Novità)</a>
         </div>
       </div>
     </div>

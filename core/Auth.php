@@ -134,6 +134,41 @@ class Auth
     }
 
     /**
+     * Verifica se l'utente loggato ha ruolo rappresentante
+     */
+    public static function isRepresentative(): bool
+    {
+        self::initSession();
+        return isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'rappresentante';
+    }
+
+    /**
+     * Verifica se l'utente loggato ha ruolo collaboratore
+     */
+    public static function isCollaborator(): bool
+    {
+        self::initSession();
+        return isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'collaboratore';
+    }
+
+    /**
+     * Restituisce il ruolo dell'utente loggato
+     */
+    public static function role(): string
+    {
+        self::initSession();
+        return $_SESSION['user_role'] ?? 'ospite';
+    }
+
+    /**
+     * Verifica se l'utente ha permessi per gestire utenti/collaboratori (admin o rappresentante)
+     */
+    public static function canManageUsers(): bool
+    {
+        return self::isAdmin() || self::isRepresentative();
+    }
+
+    /**
      * Richiede che l'utente sia autenticato, altrimenti redirect al login
      */
     public static function requireAuth(string $redirect = 'login.php'): void
@@ -151,7 +186,20 @@ class Auth
     {
         self::requireAuth();
         if (!self::isAdmin()) {
-            $_SESSION['flash_error'] = 'Accesso non autorizzato. Questa sezione è riservata all\'amministratore.';
+            Helper::setFlash('danger', 'Accesso non autorizzato. Questa sezione è riservata all\'amministratore.');
+            header("Location: {$redirect}");
+            exit;
+        }
+    }
+
+    /**
+     * Richiede che l'utente sia admin o rappresentante
+     */
+    public static function requireCanManageUsers(string $redirect = 'index.php'): void
+    {
+        self::requireAuth();
+        if (!self::canManageUsers()) {
+            Helper::setFlash('danger', 'Accesso non autorizzato. Questa sezione è riservata ad amministratori e rappresentanti di classe.');
             header("Location: {$redirect}");
             exit;
         }

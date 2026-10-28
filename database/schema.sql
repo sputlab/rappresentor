@@ -169,6 +169,18 @@ CREATE TABLE IF NOT EXISTS `rappresentor_templates` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 12. Tabella Assegnazione Classi a Utenti (Rappresentanti e Collaboratori)
+CREATE TABLE IF NOT EXISTS `rappresentor_user_classes` (
+  `user_id` INT NOT NULL,
+  `class_id` INT NOT NULL,
+  `assigned_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `assigned_by` INT NULL,
+  PRIMARY KEY (`user_id`, `class_id`),
+  CONSTRAINT `fk_uc_user` FOREIGN KEY (`user_id`) REFERENCES `rappresentor_users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_uc_class` FOREIGN KEY (`class_id`) REFERENCES `rappresentor_classes` (`id`) ON DELETE CASCADE,
+  INDEX `idx_uc_class` (`class_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Dati Iniziali: Template Predefiniti per i Rappresentanti
 INSERT INTO `rappresentor_templates` (`title`, `category`, `content`, `is_default`) VALUES
 ('Raccolta Quote Fondo Cassa', 'Cassa', '👋 Ciao a tutti i genitori di {CLASSE}!\n\nAbbiamo avviato la raccolta quote per: *{TITOLO_RACCOLTA}*.\n💰 La quota richiesta per ciascun alunno è di *{QUOTA} €*.\n📅 Termine per il versamento: *{SCADENZA}*.\n\nModalità di versamento disponibili:\n- In contanti (in bustina con nome dell alunno)\n- Satispay / Bonifico (contattatemi in privato per i dettagli)\n\nGrazie a tutti per la collaborazione!\nI Rappresentanti di Classe', 1),

@@ -183,40 +183,38 @@ class Helper
     }
 
     /**
-     * Gestisce la classe attiva selezionata in sessione
+     * Gestisce la classe attiva selezionata in sessione per l'utente loggato
      */
     public static function getActiveClassId(PDO $db): ?int
     {
         Auth::initSession();
+        $availableClasses = self::getAllClasses($db);
+
+        if (empty($availableClasses)) {
+            unset($_SESSION['active_class_id']);
+            return null;
+        }
+
+        $availableIds = array_map('intval', array_column($availableClasses, 'id'));
 
         if (isset($_GET['switch_class'])) {
             $cid = (int)$_GET['switch_class'];
-            $stmt = $db->prepare("SELECT id FROM rappresentor_classes WHERE id = :id AND is_archived = 0");
-            $stmt->execute(['id' => $cid]);
-            if ($stmt->fetch()) {
+            if (in_array($cid, $availableIds, true)) {
                 $_SESSION['active_class_id'] = $cid;
                 return $cid;
             }
         }
 
         if (!empty($_SESSION['active_class_id'])) {
-            // Verifica se esiste ancora
-            $stmt = $db->prepare("SELECT id FROM rappresentor_classes WHERE id = :id AND is_archived = 0");
-            $stmt->execute(['id' => (int)$_SESSION['active_class_id']]);
-            if ($stmt->fetch()) {
-                return (int)$_SESSION['active_class_id'];
+            $sessId = (int)$_SESSION['active_class_id'];
+            if (in_array($sessId, $availableIds, true)) {
+                return $sessId;
             }
         }
 
-        // Se non impostata o non valida, prendi la prima classe attiva
-        $stmt = $db->query("SELECT id FROM rappresentor_classes WHERE is_archived = 0 ORDER BY id ASC LIMIT 1");
-        $firstId = $stmt->fetchColumn();
-        if ($firstId) {
-            $_SESSION['active_class_id'] = (int)$firstId;
-            return (int)$firstId;
-        }
-
-        return null;
+        $firstId = (int)$availableIds[0];
+        $_SESSION['active_class_id'] = $firstId;
+        return $firstId;
     }
 
     /**
@@ -234,9 +232,9 @@ class Helper
     }
 
     /**
-     * Recupera l'elenco di tutte le classi disponibili
+     * Recupera l'elenco di tutte le classi registrate nel sistema (senza filtro utente)
      */
-    public static function getAllClasses(PDO $db, bool $includeArchived = false): array
+    public static function getSystemClasses(PDO $db, bool $includeArchived = false): array
     {
         $sql = "SELECT * FROM rappresentor_classes";
         if (!$includeArchived) {
@@ -244,6 +242,147 @@ class Helper
         }
         $sql .= " ORDER BY school_year DESC, name ASC";
         return $db->query($sql)->fetchAll();
+    }
+
+    /**
+     * Recupera gli ID delle classi assegnate a uno specifico utente
+     */
+    public static function getUserClassIds(PDO $db, int $userId): array
+    {
+        $stmt = $db->prepare("SELECT class_id FROM rappresentor_user_classes WHERE user_id = :uid");
+        $stmt->execute(['uid' => $userId]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /**
+     * Recupera le classi autorizzate per un dato utente (gli admin hanno accesso a tutte)
+     */
+    public static function getUserClasses(PDO $db, int $userId, bool $includeArchived = false): array
+    {
+        $stmt = $db->prepare("SELECT role FROM rappresentor_users WHERE id = :uid");
+        $stmt->execute(['uid' => $userId]);
+        $role = $stmt->fetchColumn();
+
+        if ($role === 'admin') {
+            return self::getSystemClasses($db, $includeArchived);
+        }
+
+        $sql = "SELECT c.* FROM rappresentor_classes c 
+                JOIN rappresentor_user_classes uc ON c.id = uc.class_id 
+                WHERE uc.user_id = :uid";
+        if (!$includeArchived) {
+            $sql .= " AND c.is_archived = 0";
+        }
+        $sql .= " ORDER BY c.school_year DESC, c.name ASC";
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['uid' => $userId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Recupera l'elenco delle classi accessibili all'utente attualmente loggato.
+     * Gli amministratori vedono tutte le classi, mentre rappresentanti e collaboratori
+     * vedono esclusivamente le classi loro assegnate.
+     */
+    public static function getAllClasses(PDO $db, bool $includeArchived = false): array
+    {
+        Auth::initSession();
+        $userId = Auth::id();
+
+        if ($userId && !Auth::isAdmin()) {
+            return self::getUserClasses($db, $userId, $includeArchived);
+        }
+
+        return self::getSystemClasses($db, $includeArchived);
+    }
+
+    /**
+     * Assegna le classi a un utente (rappresentante o collaboratore).
+     * Se l'assegnazione è effettuata da un rappresentante, vengono modificate solo le classi
+     * gestite dal rappresentante stesso.
+     */
+    public static function assignUserClasses(PDO $db, int $userId, array $newClassIds, ?int $assignedBy = null): void
+    {
+        $newClassIds = array_unique(array_filter(array_map('intval', $newClassIds)));
+
+        $assignerIsAdmin = true;
+        $manageableClassIds = [];
+
+        if ($assignedBy !== null) {
+            $stmt = $db->prepare("SELECT role FROM rappresentor_users WHERE id = :id");
+            $stmt->execute(['id' => $assignedBy]);
+            $assignerRole = $stmt->fetchColumn();
+
+            if ($assignerRole !== 'admin') {
+                $assignerIsAdmin = false;
+                $manageableClassIds = self::getUserClassIds($db, $assignedBy);
+            }
+        }
+
+        if ($assignerIsAdmin) {
+            // L'amministratore sovrascrive interamente le classi dell'utente
+            $stmt = $db->prepare("DELETE FROM rappresentor_user_classes WHERE user_id = :uid");
+            $stmt->execute(['uid' => $userId]);
+
+            if (!empty($newClassIds)) {
+                $insert = $db->prepare("INSERT INTO rappresentor_user_classes (user_id, class_id, assigned_by) VALUES (:uid, :cid, :by)");
+                foreach ($newClassIds as $cid) {
+                    $insert->execute(['uid' => $userId, 'cid' => $cid, 'by' => $assignedBy]);
+                }
+            }
+        } else {
+            // Il rappresentante può sincronizzare solo le classi di sua competenza
+            if (!empty($manageableClassIds)) {
+                $placeholders = implode(',', array_fill(0, count($manageableClassIds), '?'));
+                $deleteStmt = $db->prepare("DELETE FROM rappresentor_user_classes WHERE user_id = ? AND class_id IN ({$placeholders})");
+                $deleteStmt->execute(array_merge([$userId], $manageableClassIds));
+
+                $validToAssign = array_intersect($newClassIds, $manageableClassIds);
+                if (!empty($validToAssign)) {
+                    $insert = $db->prepare("INSERT INTO rappresentor_user_classes (user_id, class_id, assigned_by) VALUES (:uid, :cid, :by)");
+                    foreach ($validToAssign as $cid) {
+                        $insert->execute(['uid' => $userId, 'cid' => $cid, 'by' => $assignedBy]);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Verifica se un utente può accedere/gestire una determinata classe
+     */
+    public static function canManageClass(PDO $db, int $classId, ?int $userId = null): bool
+    {
+        Auth::initSession();
+        $uid = $userId ?? Auth::id();
+        if (!$uid) {
+            return false;
+        }
+
+        $stmt = $db->prepare("SELECT role FROM rappresentor_users WHERE id = :id");
+        $stmt->execute(['id' => $uid]);
+        $role = $stmt->fetchColumn();
+
+        if ($role === 'admin') {
+            return true;
+        }
+
+        $assigned = self::getUserClassIds($db, $uid);
+        return in_array($classId, $assigned, true);
+    }
+
+    /**
+     * Recupera tutti gli utenti assegnati a una classe (con rispettivo ruolo)
+     */
+    public static function getClassAssignedUsers(PDO $db, int $classId): array
+    {
+        $stmt = $db->prepare("SELECT u.id, u.name, u.email, u.role, u.is_active, uc.assigned_at
+            FROM rappresentor_users u
+            JOIN rappresentor_user_classes uc ON u.id = uc.user_id
+            WHERE uc.class_id = :cid
+            ORDER BY FIELD(u.role, 'admin', 'rappresentante', 'collaboratore'), u.name ASC");
+        $stmt->execute(['cid' => $classId]);
+        return $stmt->fetchAll();
     }
 
     /**

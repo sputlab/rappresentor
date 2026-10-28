@@ -16,6 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         Helper::setFlash('danger', 'Richiesta non valida.');
     } else {
         if ($_POST['action'] === 'add_class') {
+            if (!Auth::canManageUsers()) {
+                Helper::setFlash('danger', 'Solo amministratori e rappresentanti possono creare nuove classi.');
+                header('Location: classi.php');
+                exit;
+            }
+
             $name = trim($_POST['name'] ?? '');
             $type = $_POST['school_type'] ?? 'primaria';
             $year = trim($_POST['school_year'] ?? '2026/2027');
@@ -35,6 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 ]);
                 $newId = (int)$db->lastInsertId();
                 $_SESSION['active_class_id'] = $newId;
+
+                // Se chi crea la classe è un rappresentante, assegna automaticamente la classe a lui
+                if (Auth::isRepresentative()) {
+                    Helper::assignUserClasses($db, (int)Auth::id(), array_merge(Helper::getUserClassIds($db, (int)Auth::id()), [$newId]), (int)Auth::id());
+                }
+
                 Helper::setFlash('success', "Classe {$name} creata con successo e impostata come attiva!");
                 header('Location: classi.php');
                 exit;
@@ -44,6 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($_POST['action'] === 'toggle_archive') {
             $classId = (int)($_POST['class_id'] ?? 0);
             $archive = (int)($_POST['archive'] ?? 0);
+
+            // Verifica autorizzazione sulla classe
+            if (!Helper::canManageClass($db, $classId)) {
+                Helper::setFlash('danger', 'Non sei autorizzato a modificare questa classe.');
+                header('Location: classi.php');
+                exit;
+            }
 
             $stmt = $db->prepare("UPDATE rappresentor_classes SET is_archived = :ar WHERE id = :id");
             $stmt->execute(['ar' => $archive, 'id' => $classId]);
@@ -55,12 +74,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Carica tutte le classi con conteggio alunni e saldo cassa
-$stmt = $db->query("SELECT c.*, 
-    (SELECT COUNT(*) FROM rappresentor_students s WHERE s.class_id = c.id AND s.is_active = 1) as total_students,
-    (SELECT COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE -amount END), 0) FROM rappresentor_cashbox_transactions ct WHERE ct.class_id = c.id) as saldo
-    FROM rappresentor_classes c ORDER BY c.is_archived ASC, c.school_year DESC, c.name ASC");
-$classesList = $stmt->fetchAll();
+// Carica le classi: gli admin vedono tutto il sistema, i rappresentanti/collaboratori solo le classi assegnate
+if (Auth::isAdmin()) {
+    $stmt = $db->query("SELECT c.*, 
+        (SELECT COUNT(*) FROM rappresentor_students s WHERE s.class_id = c.id AND s.is_active = 1) as total_students,
+        (SELECT COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE -amount END), 0) FROM rappresentor_cashbox_transactions ct WHERE ct.class_id = c.id) as saldo
+        FROM rappresentor_classes c ORDER BY c.is_archived ASC, c.school_year DESC, c.name ASC");
+    $classesList = $stmt->fetchAll();
+} else {
+    $stmt = $db->prepare("SELECT c.*, 
+        (SELECT COUNT(*) FROM rappresentor_students s WHERE s.class_id = c.id AND s.is_active = 1) as total_students,
+        (SELECT COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE -amount END), 0) FROM rappresentor_cashbox_transactions ct WHERE ct.class_id = c.id) as saldo
+        FROM rappresentor_classes c 
+        JOIN rappresentor_user_classes uc ON c.id = uc.class_id
+        WHERE uc.user_id = :uid
+        ORDER BY c.is_archived ASC, c.school_year DESC, c.name ASC");
+    $stmt->execute(['uid' => Auth::id()]);
+    $classesList = $stmt->fetchAll();
+}
 
 $pageTitle = 'Gestione Classi';
 require_once __DIR__ . '/includes/header.php';
@@ -74,9 +105,11 @@ require_once __DIR__ . '/includes/header.php';
     </h1>
     <p class="page-subtitle">Configura e gestisci le classi dall'asilo nido alle medie.</p>
   </div>
+  <?php if (Auth::canManageUsers()): ?>
   <div>
     <button class="btn btn-primary" data-modal-target="modalAddClass">+ Aggiungi Nuova Classe</button>
   </div>
+  <?php endif; ?>
 </div>
 
 <div class="grid-2">
@@ -121,6 +154,23 @@ require_once __DIR__ . '/includes/header.php';
           </div>
         </div>
 
+        <?php 
+          $assignedUsers = Helper::getClassAssignedUsers($db, (int)$c['id']); 
+          if (!empty($assignedUsers)):
+        ?>
+          <div style="margin-bottom: 14px; font-size: 0.82rem; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+            <span style="color: var(--text-secondary); font-size: 0.72rem; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 6px;">Team Assegnato:</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+              <?php foreach ($assignedUsers as $au): ?>
+                <span class="badge <?= $au['role'] === 'rappresentante' ? 'badge-primary' : ($au['role'] === 'admin' ? 'badge-warning' : 'badge-secondary') ?>" style="font-size: 0.72rem; font-weight: 500;" title="<?= Helper::e($au['email']) ?>">
+                  <?= $au['role'] === 'rappresentante' ? '⭐ ' : ($au['role'] === 'admin' ? '🛡️ ' : '👤 ') ?>
+                  <?= Helper::e($au['name']) ?>
+                </span>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        <?php endif; ?>
+
         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 14px;">
           <?php if (!$isActive): ?>
             <a href="?switch_class=<?= (int)$c['id'] ?>" class="btn btn-sm btn-primary">
@@ -130,6 +180,7 @@ require_once __DIR__ . '/includes/header.php';
             <span style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">✓ In uso</span>
           <?php endif; ?>
 
+          <?php if (Auth::canManageUsers()): ?>
           <form method="POST" action="classi.php" style="display: inline;">
             <?= Helper::csrfField() ?>
             <input type="hidden" name="action" value="toggle_archive">
@@ -139,6 +190,7 @@ require_once __DIR__ . '/includes/header.php';
               <?= $c['is_archived'] ? 'Ripristina' : 'Archivia' ?>
             </button>
           </form>
+          <?php endif; ?>
         </div>
       </div>
     </div>

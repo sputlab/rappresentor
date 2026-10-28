@@ -4,6 +4,25 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.5.0] - 2026-10-29
+### Aggiunto
+- **Assegnazione Classi a Rappresentanti e Collaboratori (Multi-classe Role-Based Access Control)**:
+  - Nuova tabella `rappresentor_user_classes` per associare in modo granulare gli utenti alle classi di loro competenza.
+  - **Amministratori**: possono assegnare qualsiasi classe sia ai Rappresentanti che ai Collaboratori.
+  - **Rappresentanti**: possono gestire i collaboratori per le classi a cui sono assegnati, invitando nuovi collaboratori o aggiornando l'assegnazione delle sole classi di loro competenza, senza alterare altre assegnazioni.
+  - **Visibilità Contestuale Ristretta**: i Rappresentanti e Collaboratori visualizzano esclusivamente le classi assegnate nel selettore di classe (barra desktop e burger menu mobile) e nelle rispettive aree applicative (Alunni, Cassa, Calendario, Consigli, Comunicazioni).
+  - **Team Assegnato nelle Schede Classe (`classi.php`)**: visualizzazione visiva con badge colorati di rappresentanti, collaboratori e amministratori assegnati a ciascuna classe.
+  - Auto-associazione della classe creata al profilo del Rappresentante che l'ha generata.
+  - Auto-migrazione automatica dello schema in `includes/init.php` (`CREATE TABLE IF NOT EXISTS rappresentor_user_classes`) al primo avvio su database esistenti.
+- **Interfaccia Collaboratori per Rappresentanti (`utenti.php`)**:
+  - Accesso abilitato alla pagina collaboratori sia per gli amministratori che per i rappresentanti (`Auth::canManageUsers()`).
+  - Griglia responsive con checkbox (`.class-checkbox-grid`) per la selezione intuitiva delle classi assegnabili sia in creazione che in modifica utente.
+  - Badge identificativi delle classi assegnate per ogni riga utente nella tabella.
+
+### Modificato
+- Aggiornato cache-busting asset e Service Worker PWA (`rappresentor-cache-v0.5.0`).
+- Risolto avviso di deprecazione PHP 8.5 su `PDO::MYSQL_ATTR_INIT_COMMAND` con fallback retrocompatibile.
+
 ## [0.4.0] - 2026-10-29
 ### Aggiunto
 - **Modifica Collaboratori Esistenti**: implementata la funzionalità completa di modifica in `utenti.php` con modale dedicato. Gli amministratori possono ora aggiornare nome, indirizzo email, ruolo (`admin`, `rappresentante`, `collaboratore`), stato di attivazione e reimpostare opzionalmente la password dei collaboratori.

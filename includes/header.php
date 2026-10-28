@@ -142,12 +142,14 @@ $currentScript = basename($_SERVER['PHP_SELF']);
           <span>Gestione Classi</span>
         </a>
 
-        <?php if (Auth::isAdmin()): ?>
+        <?php if (Auth::canManageUsers()): ?>
           <a href="utenti.php" class="nav-item <?= $currentScript === 'utenti.php' ? 'active' : '' ?>">
             <span class="nav-icon">👥</span>
             <span>Collaboratori</span>
           </a>
+        <?php endif; ?>
 
+        <?php if (Auth::isAdmin()): ?>
           <a href="impostazioni.php" class="nav-item <?= $currentScript === 'impostazioni.php' ? 'active' : '' ?>">
             <span class="nav-icon">⚙️</span>
             <span>Impostazioni & Mail</span>

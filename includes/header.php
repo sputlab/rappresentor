@@ -123,7 +123,7 @@ $currentScript = basename($_SERVER['PHP_SELF']);
         <?php if (Auth::isAdmin()): ?>
           <a href="utenti.php" class="nav-item <?= $currentScript === 'utenti.php' ? 'active' : '' ?>">
             <span class="nav-icon">👥</span>
-            <span>Collaboratori (max 5)</span>
+            <span>Collaboratori</span>
           </a>
 
           <a href="impostazioni.php" class="nav-item <?= $currentScript === 'impostazioni.php' ? 'active' : '' ?>">

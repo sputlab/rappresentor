@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $keysToUpdate = [
                 'school_name'     => trim($_POST['school_name'] ?? ''),
                 'school_year'     => trim($_POST['school_year'] ?? '2026/2027'),
-                'max_users'       => (string)max(1, min(10, (int)($_POST['max_users'] ?? 5))),
+                'max_users'       => (string)max(1, min(50, (int)($_POST['max_users'] ?? 5))),
                 'smtp_enabled'    => isset($_POST['smtp_enabled']) ? '1' : '0',
                 'smtp_host'       => trim($_POST['smtp_host'] ?? 'localhost'),
                 'smtp_port'       => trim($_POST['smtp_port'] ?? '587'),
@@ -42,9 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $keysToUpdate['smtp_pass'] = $_POST['smtp_pass'];
             }
 
-            $stmt = $db->prepare("INSERT INTO rappresentor_settings (key_name, key_value) VALUES (:k, :v) ON DUPLICATE KEY UPDATE key_value = :v");
+            $stmt = $db->prepare("INSERT INTO rappresentor_settings (key_name, key_value) VALUES (:k, :v) ON DUPLICATE KEY UPDATE key_value = :v_update");
             foreach ($keysToUpdate as $k => $v) {
-                $stmt->execute(['k' => $k, 'v' => $v]);
+                $stmt->execute([
+                    'k' => $k,
+                    'v' => $v,
+                    'v_update' => $v
+                ]);
             }
 
             Helper::setFlash('success', 'Impostazioni salvate con successo!');
@@ -110,8 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
           <div class="form-group">
             <label for="max_users">Limite Max Collaboratori (SaaS)</label>
-            <input type="number" id="max_users" name="max_users" min="1" max="10" class="form-control" value="<?= Helper::e($settings['max_users'] ?? '5') ?>" required>
-            <small class="form-hint">Impostazione predefinita a 5 persone.</small>
+            <input type="number" id="max_users" name="max_users" min="1" max="50" class="form-control" value="<?= Helper::e($settings['max_users'] ?? '5') ?>" required>
+            <small class="form-hint">Impostazione predefinita a 5 persone (espandibile fino a 50).</small>
           </div>
         </div>
 

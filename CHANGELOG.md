@@ -4,6 +4,12 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.3.2] - 2026-10-28
+### Corretto
+- **Errore PDO in Impostazioni**: risolta l'eccezione `SQLSTATE[HY093]: Invalid parameter number` durante il salvataggio dei parametri in `impostazioni.php` (e `install.php`). Con i prepared statements nativi di MySQL (`PDO::ATTR_EMULATE_PREPARES = false`), i parametri con lo stesso nome non possono essere riutilizzati due volte all'interno della clausola `ON DUPLICATE KEY UPDATE`; i parametri sono stati resi univoci (`:v` e `:v_update`).
+- **Flessibilità Limite Collaboratori**: aumentato il limite massimo configurabile da 10 a 50 collaboratori nel campo SaaS, per supportare istituti comprensivi con più classi e sezioni.
+- Rimosso il testo statico `(max 5)` dalla voce di menu laterale, rendendolo coerente con qualsiasi limite impostato dall'amministratore.
+
 ## [0.3.1] - 2026-10-28
 ### Corretto
 - **Setup iniziale e importazione manuale**: risolto il problema per cui `install.php`, rilevando il file `config/config.php` creato manualmente o in seguito a import manuale di `schema.sql`, considerava l'applicazione già installata senza consentire la creazione del primo account amministratore.

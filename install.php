@@ -119,8 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
 
                 // Impostazioni
-                $stmt = $pdo->prepare("INSERT INTO rappresentor_settings (key_name, key_value) VALUES ('school_name', :sname) ON DUPLICATE KEY UPDATE key_value = :sname");
-                $stmt->execute(['sname' => $schoolName]);
+                $stmt = $pdo->prepare("INSERT INTO rappresentor_settings (key_name, key_value) VALUES ('school_name', :sname) ON DUPLICATE KEY UPDATE key_value = :sname_up");
+                $stmt->execute(['sname' => $schoolName, 'sname_up' => $schoolName]);
 
                 $adminCount = 1;
                 $successMessage = "Account Amministratore e configurazione iniziale completati con successo!";
@@ -194,8 +194,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
 
                 // 5. Aggiornamento impostazioni scuola
-                $stmt = $pdo->prepare("INSERT INTO rappresentor_settings (key_name, key_value) VALUES ('school_name', :sname) ON DUPLICATE KEY UPDATE key_value = :sname");
-                $stmt->execute(['sname' => $schoolName]);
+                $stmt = $pdo->prepare("INSERT INTO rappresentor_settings (key_name, key_value) VALUES ('school_name', :sname) ON DUPLICATE KEY UPDATE key_value = :sname_up");
+                $stmt->execute(['sname' => $schoolName, 'sname_up' => $schoolName]);
 
                 // 6. Scrittura file config/config.php
                 $configContent = "<?php\n" .

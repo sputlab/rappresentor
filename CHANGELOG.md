@@ -4,6 +4,25 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.6.0] - 2026-10-29
+### Aggiunto
+- **Messaggi WhatsApp con Tutte le Campagne Quote Attive**:
+  - Risolto il limite per cui i messaggi e promemoria WhatsApp riportavano solamente l'ultima campagna creata.
+  - Implementata la funzione `Helper::getActiveCampaignsSummary()` che aggrega tutte le campagne quote aperte per la classe attiva, elencando per ciascuna titolo, quota per alunno, scadenza e calcolando il totale complessivo richiesto ad alunno.
+  - Introdotto il segnaposto dinamico `{DETTAGLIO_QUOTE}` (con alias `{CAMPAGNE_ATTIVE}` e `{LISTA_QUOTE}`) per includere nei modelli WhatsApp l'elenco completo formattato per chat di gruppo.
+  - Aggiornati i template predefiniti di sistema ("Raccolta Quote Fondo Cassa" e "Promemoria Pagamento Quota") con migrazione automatica in `includes/init.php`.
+  - Nuovo pulsante e modale **"📱 Avviso Quote WA"** nella pagina Cassa (`cassa.php`) per copiare istantaneamente il testo di riepilogo con tutte le raccolte attive della classe.
+- **Aggiornamento Automatico Totali Cassa (Entrate, Uscite e Saldo)**:
+  - Implementato in `Helper::getClassCashSummary()` il calcolo finanziario in tempo reale: i totali in entrata e il saldo disponibile della cassa si aggiornano automaticamente ogni volta che viene registrato il versamento di una quota alunno.
+  - Mantenuta la completa possibilità di registrare manualmente movimenti in entrata (es. avanzo anni precedenti, donazioni) e in uscita (scontrini, cancelleria, gite, regali docenti).
+  - Dettaglio chiaro nella scheda "Totale Entrate" di `cassa.php` con distinzione tra quote versate dagli alunni ed entrate manuali.
+  - Aggiunta la possibilità di eliminare movimenti manuali registrati nel registro cassa con conferma di sicurezza.
+  - Allineato il calcolo del saldo in tempo reale nella Dashboard (`index.php`), nella Bacheca WhatsApp (`comunicazioni.php`) e nella Gestione Classi (`classi.php`).
+  - Auto-inizializzazione dei pagamenti per le campagne aperte all'aggiunta di un nuovo alunno in `alunni.php`.
+
+### Modificato
+- Aggiornato Service Worker PWA (`rappresentor-cache-v0.6.0`) e cache-busting asset.
+
 ## [0.5.0] - 2026-10-29
 ### Aggiunto
 - **Assegnazione Classi a Rappresentanti e Collaboratori (Multi-classe Role-Based Access Control)**:

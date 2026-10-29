@@ -42,16 +42,11 @@ $stmt = $db->prepare("SELECT COUNT(*) FROM rappresentor_guardians g JOIN rappres
 $stmt->execute(['cid' => $activeClassId]);
 $totalGuardians = (int)$stmt->fetchColumn();
 
-// 2. Cassa di classe: entrate, uscite, saldo
-$stmt = $db->prepare("SELECT 
-    COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
-    COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
-    FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
-$stmt->execute(['cid' => $activeClassId]);
-$cashbox = $stmt->fetch();
-$totalEntrate = (float)($cashbox['total_entrate'] ?? 0);
-$totalUscite = (float)($cashbox['total_uscite'] ?? 0);
-$saldoCassa = $totalEntrate - $totalUscite;
+// 2. Cassa di classe: entrate, uscite, saldo (aggiornati automaticamente con quote alunni + movimenti manuali)
+$cashSummary = Helper::getClassCashSummary($db, $activeClassId);
+$totalEntrate = $cashSummary['total_entrate'];
+$totalUscite = $cashSummary['total_uscite'];
+$saldoCassa = $cashSummary['saldo'];
 
 // 3. Campagne quote aperte
 $stmt = $db->prepare("SELECT c.*, 
@@ -116,7 +111,7 @@ $classTypeInfo = Helper::schoolTypeDetails($activeClass['school_type'] ?? 'prima
       <div class="stat-value" style="color: <?= $saldoCassa >= 0 ? 'var(--success-text)' : 'var(--danger-text)' ?>;">
         <?= Helper::formatMoney($saldoCassa) ?>
       </div>
-      <div class="stat-hint">Entrate: <?= Helper::formatMoney($totalEntrate) ?></div>
+      <div class="stat-hint">Entrate: <?= Helper::formatMoney($totalEntrate) ?> • Uscite: <?= Helper::formatMoney($totalUscite) ?></div>
     </div>
   </div>
 

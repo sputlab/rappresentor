@@ -97,7 +97,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $amount = (float)str_replace(',', '.', $_POST['amount_paid'] ?? '0');
             $method = $_POST['payment_method'] ?? 'contanti';
             $notes = trim($_POST['notes'] ?? '');
-            $paidAt = ($status === 'pagato') ? date('Y-m-d') : null;
+
+            if ($status === 'non_pagato' || $status === 'esonerato') {
+                $amount = 0.00;
+                $paidAt = null;
+            } else {
+                $paidAt = ($status === 'pagato') ? date('Y-m-d') : null;
+            }
 
             $stmt = $db->prepare("UPDATE rappresentor_payments SET status = :st, amount_paid = :am, payment_method = :pm, paid_at = :pa, notes = :nt WHERE id = :id");
             $stmt->execute([
@@ -109,8 +115,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'id' => $paymentId
             ]);
 
-            Helper::setFlash('success', 'Pagamento aggiornato.');
+            Helper::setFlash('success', 'Pagamento aggiornato. I totali cassa sono stati aggiornati automaticamente!');
             header("Location: cassa.php?campaign_id={$campaignId}");
+            exit;
+        }
+
+        // 3b. Elimina Movimento Manuale dal Registro Cassa
+        if ($_POST['action'] === 'delete_transaction') {
+            $txId = (int)($_POST['transaction_id'] ?? 0);
+            $stmt = $db->prepare("DELETE FROM rappresentor_cashbox_transactions WHERE id = :id AND class_id = :cid");
+            $stmt->execute(['id' => $txId, 'cid' => $activeClassId]);
+            Helper::setFlash('info', 'Movimento cassa eliminato.');
+            header('Location: cassa.php');
             exit;
         }
 
@@ -130,6 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Dati Cassa e Campagne
 $totalEntrate = 0.0;
 $totalUscite = 0.0;
+$entrateQuote = 0.0;
+$entrateManuali = 0.0;
 $saldoCassa = 0.0;
 $campaigns = [];
 $selectedCampaignId = 0;
@@ -137,18 +155,16 @@ $selectedCampaign = null;
 $campaignPayments = [];
 $transactions = [];
 $rendicontoWa = '';
+$quoteWa = '';
 
 if ($activeClassId) {
-    // 1. Calcolo Saldo Cassa Totale
-    $stmt = $db->prepare("SELECT 
-        COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
-        COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
-        FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
-    $stmt->execute(['cid' => $activeClassId]);
-    $cashSummary = $stmt->fetch();
-    $totalEntrate = (float)($cashSummary['total_entrate'] ?? 0);
-    $totalUscite = (float)($cashSummary['total_uscite'] ?? 0);
-    $saldoCassa = $totalEntrate - $totalUscite;
+    // 1. Calcolo Saldo Cassa Totale (aggiornato automaticamente in base a chi ha versato le quote + movimenti manuali)
+    $cashSummary = Helper::getClassCashSummary($db, $activeClassId);
+    $entrateQuote = $cashSummary['entrate_quote'];
+    $entrateManuali = $cashSummary['entrate_manuali'];
+    $totalEntrate = $cashSummary['total_entrate'];
+    $totalUscite = $cashSummary['total_uscite'];
+    $saldoCassa = $cashSummary['saldo'];
 
     // 2. Carica Campagne Quote
     $stmt = $db->prepare("SELECT c.*, 
@@ -173,6 +189,13 @@ if ($activeClassId) {
         }
 
         if ($selectedCampaign) {
+            // Assicura che tutti gli alunni attivi abbiano una riga di pagamento per questa campagna
+            $db->prepare("INSERT IGNORE INTO rappresentor_payments (campaign_id, student_id, status, amount_paid)
+                SELECT :cmp, id, 'non_pagato', 0.00 
+                FROM rappresentor_students 
+                WHERE class_id = :cid AND is_active = 1")
+                ->execute(['cmp' => $selectedCampaignId, 'cid' => $activeClassId]);
+
             // Carica elenco alunni e relativo pagamento per la campagna
             $stmt = $db->prepare("SELECT p.*, s.first_name, s.last_name 
                 FROM rappresentor_payments p 
@@ -193,13 +216,37 @@ if ($activeClassId) {
     $stmt->execute(['cid' => $activeClassId]);
     $transactions = $stmt->fetchAll();
 
-    // Costruisci testo rendiconto cassa WhatsApp
+    // 4. Riepilogo WhatsApp per TUTTE le campagne quote attive della classe selezionata
+    $campSummary = Helper::getActiveCampaignsSummary($db, $activeClassId);
+    $activeCampaignsList = $campSummary['campaigns'];
+
+    $quoteWa = "📢 *RACCOLTE QUOTE ATTIVE - " . ($activeClass['name'] ?? 'Classe') . "*\n";
+    $quoteWa .= "🏫 " . ($activeClass['school_name'] ?? 'Scuola') . " - A.S. " . ($activeClass['school_year'] ?? '') . "\n";
+    $quoteWa .= "📅 Aggiornato al: " . date('d/m/Y') . "\n\n";
+
+    if (empty($activeCampaignsList)) {
+        $quoteWa .= "Al momento non risultano raccolte quote attive per la nostra classe.\n";
+    } else {
+        $quoteWa .= "👋 Ciao a tutti i genitori!\nVi riepiloghiamo le raccolte quote attualmente aperte per la nostra classe:\n\n";
+        $quoteWa .= $campSummary['formatted_block'] . "\n\n";
+        $quoteWa .= "Modalità di versamento disponibili:\n";
+        $quoteWa .= "- In contanti (in bustina con nome dell'alunno)\n";
+        $quoteWa .= "- Satispay / Bonifico (contattatemi in privato per i dettagli)\n\n";
+        $quoteWa .= "Grazie a tutti per la collaborazione!\nI Rappresentanti di Classe";
+    }
+
+    // 5. Costruisci testo rendiconto cassa WhatsApp
     $rendicontoWa = "📊 *RENDICONTO CASSA DI CLASSE*\n";
     $rendicontoWa .= "🏫 " . ($activeClass['name'] ?? 'Classe') . " - A.S. " . ($activeClass['school_year'] ?? '') . "\n";
     $rendicontoWa .= "📅 Aggiornato al: " . date('d/m/Y') . "\n\n";
     $rendicontoWa .= "💰 *SALDO ATTUALE:* " . Helper::formatMoney($saldoCassa) . "\n";
-    $rendicontoWa .= "📥 Totale Entrate: " . Helper::formatMoney($totalEntrate) . "\n";
-    $rendicontoWa .= "📤 Totale Uscite: " . Helper::formatMoney($totalUscite) . "\n\n";
+    $rendicontoWa .= "📥 Totale Entrate: " . Helper::formatMoney($totalEntrate);
+    if ($entrateQuote > 0 && $entrateManuali > 0) {
+        $rendicontoWa .= " (Quote alunni: " . Helper::formatMoney($entrateQuote) . " | Altre entrate: " . Helper::formatMoney($entrateManuali) . ")";
+    } elseif ($entrateQuote > 0) {
+        $rendicontoWa .= " (Quote versate dagli alunni)";
+    }
+    $rendicontoWa .= "\n📤 Totale Uscite: " . Helper::formatMoney($totalUscite) . "\n\n";
     $rendicontoWa .= "*Ultime uscite registrate:*\n";
 
     $recentUsciteCount = 0;
@@ -236,6 +283,7 @@ if (!$activeClassId) {
   <div style="display: flex; gap: 10px; flex-wrap: wrap;">
     <button class="btn btn-primary" data-modal-target="modalAddCampaign">+ Nuova Raccolta Quote</button>
     <button class="btn btn-secondary" data-modal-target="modalAddTransaction">+ Registra Movimento</button>
+    <button class="btn btn-whatsapp" data-modal-target="modalQuoteWa">📱 Avviso Quote WA</button>
     <button class="btn btn-whatsapp" data-modal-target="modalRendicontoWa">📱 Copia Rendiconto WA</button>
   </div>
 </div>
@@ -259,8 +307,10 @@ if (!$activeClassId) {
     <div class="stat-icon" style="background: var(--info-bg); color: var(--info);">📥</div>
     <div class="stat-info">
       <div class="stat-label">Totale Entrate</div>
-      <div class="stat-value"><?= Helper::formatMoney($totalEntrate) ?></div>
-      <div class="stat-hint">Quote alunni e fondi versati</div>
+      <div class="stat-value" style="color: var(--success-text);"><?= Helper::formatMoney($totalEntrate) ?></div>
+      <div class="stat-hint">
+        Quote: <?= Helper::formatMoney($entrateQuote) ?> • Manuali: <?= Helper::formatMoney($entrateManuali) ?>
+      </div>
     </div>
   </div>
 
@@ -268,8 +318,8 @@ if (!$activeClassId) {
     <div class="stat-icon" style="background: var(--warning-bg); color: var(--warning);">📤</div>
     <div class="stat-info">
       <div class="stat-label">Totale Uscite</div>
-      <div class="stat-value"><?= Helper::formatMoney($totalUscite) ?></div>
-      <div class="stat-hint">Regali maestre, materiali, gite</div>
+      <div class="stat-value" style="color: var(--danger-text);"><?= Helper::formatMoney($totalUscite) ?></div>
+      <div class="stat-hint">Movimenti registrati nel libro cassa</div>
     </div>
   </div>
 </div>
@@ -404,6 +454,10 @@ if (!$activeClassId) {
     <h2 class="card-title">📖 Registro Entrate & Uscite Cassa</h2>
     <span style="font-size: 0.85rem; color: var(--text-secondary);"><?= count($transactions) ?> registrazioni</span>
   </div>
+  <div style="padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid var(--border-color); font-size: 0.83rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+    <span>💡</span>
+    <span>I versamenti quote degli alunni confluiscono <strong>automaticamente</strong> nel Totale Entrate e Saldo Cassa. Qui puoi registrare e consultare i movimenti manuali della classe (scontrini spese, acquisti o entrate straordinarie).</span>
+  </div>
   <div class="card-body" style="padding: 0;">
     <div class="table-responsive">
       <table class="table">
@@ -415,13 +469,14 @@ if (!$activeClassId) {
             <th>Descrizione & Note</th>
             <th>Scontrino / Riferimento</th>
             <th style="text-align: right;">Importo</th>
+            <th style="text-align: right; width: 60px;">Azione</th>
           </tr>
         </thead>
         <tbody>
           <?php if (empty($transactions)): ?>
             <tr>
-              <td colspan="6" style="text-align: center; padding: 32px; color: var(--text-muted);">
-                Nessun movimento registrato. Clicca su "+ Registra Movimento" per inserire un'uscita o entrata.
+              <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                Nessun movimento manuale registrato. Clicca su "+ Registra Movimento" per inserire un'uscita (es. spesa) o un'entrata straordinaria.
               </td>
             </tr>
           <?php else: ?>
@@ -446,6 +501,14 @@ if (!$activeClassId) {
                 </td>
                 <td style="text-align: right; font-weight: 700; color: <?= $isEntrata ? 'var(--success-text)' : 'var(--danger-text)' ?>;">
                   <?= $isEntrata ? '+' : '-' ?> <?= Helper::formatMoney($t['amount']) ?>
+                </td>
+                <td style="text-align: right;">
+                  <form method="POST" action="cassa.php" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questo movimento dal registro cassa?');">
+                    <?= Helper::csrfField() ?>
+                    <input type="hidden" name="action" value="delete_transaction">
+                    <input type="hidden" name="transaction_id" value="<?= (int)$t['id'] ?>">
+                    <button type="submit" class="btn btn-sm btn-secondary" style="padding: 2px 6px; font-size: 0.75rem; color: var(--danger);" title="Elimina movimento">🗑️</button>
+                  </form>
                 </td>
               </tr>
             <?php endforeach; ?>
@@ -616,6 +679,28 @@ if (!$activeClassId) {
         <button type="submit" class="btn btn-primary">Salva Pagamento</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Modal Avviso Quote WhatsApp -->
+<div class="modal-backdrop" id="modalQuoteWa">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Avviso Quote Attive per WhatsApp</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0;">
+        Messaggio pronto da inviare nella chat dei genitori, comprensivo di <strong>tutte le raccolte quote aperte</strong> per la classe e del totale complessivo ad alunno:
+      </p>
+      <textarea id="textQuoteWa" class="form-control" rows="10" readonly><?= Helper::e($quoteWa) ?></textarea>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-modal-close>Chiudi</button>
+      <button type="button" class="btn btn-whatsapp" data-copy-target="#textQuoteWa" data-copy-success="Avviso quote copiato! Incollalo nella chat WhatsApp dei genitori.">
+        📋 Copia per WhatsApp
+      </button>
+    </div>
   </div>
 </div>
 

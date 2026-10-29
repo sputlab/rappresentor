@@ -386,6 +386,113 @@ class Helper
     }
 
     /**
+     * Calcola il riepilogo finanziario della cassa di classe:
+     * - Totale quote versate dagli alunni (entrate automatiche da rappresentor_payments)
+     * - Movimenti manuali registrati nel registro cassa (entrate ed uscite in rappresentor_cashbox_transactions)
+     * - Totale Entrate complessivo = Entrate Quote + Entrate Manuali
+     * - Totale Uscite complessivo = Uscite Manuali
+     * - Saldo Cassa Disponibile = Totale Entrate - Totale Uscite
+     */
+    public static function getClassCashSummary(PDO $db, int $classId): array
+    {
+        // 1. Entrate automatiche da quote versate dagli alunni
+        $stmt = $db->prepare("SELECT COALESCE(SUM(p.amount_paid), 0) 
+            FROM rappresentor_payments p 
+            JOIN rappresentor_campaigns c ON p.campaign_id = c.id 
+            WHERE c.class_id = :cid");
+        $stmt->execute(['cid' => $classId]);
+        $entrateQuote = (float)$stmt->fetchColumn();
+
+        // 2. Movimenti manuali registrati nel libro cassa (entrate ed uscite)
+        $stmt = $db->prepare("SELECT 
+            COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as manual_entrate,
+            COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as manual_uscite
+            FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
+        $stmt->execute(['cid' => $classId]);
+        $manual = $stmt->fetch();
+        $entrateManuali = (float)($manual['manual_entrate'] ?? 0);
+        $usciteManuali = (float)($manual['manual_uscite'] ?? 0);
+
+        $totalEntrate = $entrateQuote + $entrateManuali;
+        $totalUscite = $usciteManuali;
+        $saldo = $totalEntrate - $totalUscite;
+
+        return [
+            'entrate_quote' => $entrateQuote,
+            'entrate_manuali' => $entrateManuali,
+            'total_entrate' => $totalEntrate,
+            'total_uscite' => $totalUscite,
+            'saldo' => $saldo
+        ];
+    }
+
+    /**
+     * Recupera tutte le campagne quote attive per una classe e ne genera il riepilogo WhatsApp
+     */
+    public static function getActiveCampaignsSummary(PDO $db, int $classId): array
+    {
+        $stmt = $db->prepare("SELECT * FROM rappresentor_campaigns WHERE class_id = :cid AND is_closed = 0 ORDER BY deadline ASC, id ASC");
+        $stmt->execute(['cid' => $classId]);
+        $campaigns = $stmt->fetchAll();
+
+        $titles = [];
+        $lines = [];
+        $deadlines = [];
+        $totalQuota = 0.0;
+
+        foreach ($campaigns as $c) {
+            $q = (float)$c['quota_per_student'];
+            $totalQuota += $q;
+            $dl = $c['deadline'] ? self::formatDate($c['deadline']) : null;
+            $titles[] = $c['title'];
+            if ($dl) {
+                $deadlines[] = "{$c['title']}: entro il {$dl}";
+            }
+
+            $line = "• *{$c['title']}*: " . self::formatMoney($q) . " per alunno";
+            if ($dl) {
+                $line .= " (scadenza: *{$dl}*)";
+            }
+            if (!empty($c['description'])) {
+                $line .= "\n  _{$c['description']}_";
+            }
+            $lines[] = $line;
+        }
+
+        if (empty($campaigns)) {
+            $formattedBlock = "Al momento non risultano raccolte quote attive per la nostra classe.";
+            $quotaTitle = "Cassa Comune";
+            $quotaAmount = "10,00";
+            $quotaDeadline = "prossima settimana";
+        } elseif (count($campaigns) === 1) {
+            $single = $campaigns[0];
+            $quotaTitle = $single['title'];
+            $quotaAmount = number_format((float)$single['quota_per_student'], 2, ',', '.');
+            $quotaDeadline = $single['deadline'] ? self::formatDate($single['deadline']) : 'prossima settimana';
+            $formattedBlock = "📌 *{$single['title']}*\n💰 Quota: *" . self::formatMoney($single['quota_per_student']) . "* per alunno" . ($single['deadline'] ? "\n📅 Scadenza: *" . self::formatDate($single['deadline']) . "*" : "");
+            if (!empty($single['description'])) {
+                $formattedBlock .= "\n_{$single['description']}_";
+            }
+        } else {
+            $quotaTitle = implode(", ", $titles);
+            $quotaAmount = number_format($totalQuota, 2, ',', '.') . " (totale di " . count($campaigns) . " raccolte attive)";
+            $quotaDeadline = !empty($deadlines) ? implode(" | ", $deadlines) : 'come indicato nelle singole scadenze';
+            $formattedBlock = implode("\n", $lines) . "\n\n💰 *Totale complessivo quote richieste:* " . self::formatMoney($totalQuota) . " per alunno";
+        }
+
+        return [
+            'campaigns' => $campaigns,
+            'count' => count($campaigns),
+            'total_quota' => $totalQuota,
+            'titles' => $titles,
+            'quota_title' => $quotaTitle,
+            'quota_amount' => $quotaAmount,
+            'quota_deadline' => $quotaDeadline,
+            'formatted_block' => $formattedBlock
+        ];
+    }
+
+    /**
      * Recupera la versione corrente dell'app
      */
     public static function getAppVersion(): string

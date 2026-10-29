@@ -101,6 +101,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 ]);
             }
 
+            // Inizializza le righe di pagamento per le raccolte quote aperte della classe
+            $openCamps = $db->prepare("SELECT id FROM rappresentor_campaigns WHERE class_id = :cid AND is_closed = 0");
+            $openCamps->execute(['cid' => $activeClassId]);
+            $camps = $openCamps->fetchAll();
+            if (!empty($camps)) {
+                $payIns = $db->prepare("INSERT IGNORE INTO rappresentor_payments (campaign_id, student_id, status, amount_paid) VALUES (:cid, :sid, 'non_pagato', 0.00)");
+                foreach ($camps as $cp) {
+                    $payIns->execute(['cid' => $cp['id'], 'sid' => $studentId]);
+                }
+            }
+
             Helper::setFlash('success', "Alunno {$firstName} {$lastName} aggiunto con successo!");
             header('Location: alunni.php');
             exit;

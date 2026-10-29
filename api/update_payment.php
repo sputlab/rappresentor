@@ -29,7 +29,19 @@ if (!in_array($status, $validStatuses, true) || $paymentId <= 0) {
     exit;
 }
 
-$paidAt = ($status === 'pagato') ? date('Y-m-d') : null;
+if ($status === 'non_pagato' || $status === 'esonerato') {
+    $amount = 0.00;
+    $paidAt = null;
+} elseif ($status === 'pagato') {
+    if ($amount <= 0) {
+        $stmtC = $db->prepare("SELECT c.quota_per_student FROM rappresentor_campaigns c JOIN rappresentor_payments p ON c.id = p.campaign_id WHERE p.id = :id");
+        $stmtC->execute(['id' => $paymentId]);
+        $amount = (float)($stmtC->fetchColumn() ?: 0);
+    }
+    $paidAt = date('Y-m-d');
+} else {
+    $paidAt = ($amount > 0) ? date('Y-m-d') : null;
+}
 
 try {
     $stmt = $db->prepare("UPDATE rappresentor_payments SET status = :st, amount_paid = :am, payment_method = :pm, paid_at = :pa, updated_at = NOW() WHERE id = :id");
@@ -41,7 +53,18 @@ try {
         'id' => $paymentId
     ]);
 
-    echo json_encode(['success' => true]);
+    $stmtClass = $db->prepare("SELECT c.class_id FROM rappresentor_campaigns c JOIN rappresentor_payments p ON c.id = p.campaign_id WHERE p.id = :id");
+    $stmtClass->execute(['id' => $paymentId]);
+    $classId = (int)$stmtClass->fetchColumn();
+
+    $summary = ($classId > 0) ? Helper::getClassCashSummary($db, $classId) : null;
+
+    echo json_encode([
+        'success' => true,
+        'amount' => $amount,
+        'status' => $status,
+        'summary' => $summary
+    ]);
 } catch (\Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

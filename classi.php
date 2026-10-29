@@ -75,16 +75,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Carica le classi: gli admin vedono tutto il sistema, i rappresentanti/collaboratori solo le classi assegnate
+$saldoSql = "COALESCE(
+    (SELECT COALESCE(SUM(p.amount_paid), 0) FROM rappresentor_payments p JOIN rappresentor_campaigns cmp ON p.campaign_id = cmp.id WHERE cmp.class_id = c.id) +
+    (SELECT COALESCE(SUM(CASE WHEN ct.type = 'entrata' THEN ct.amount ELSE -ct.amount END), 0) FROM rappresentor_cashbox_transactions ct WHERE ct.class_id = c.id),
+    0
+)";
+
 if (Auth::isAdmin()) {
     $stmt = $db->query("SELECT c.*, 
         (SELECT COUNT(*) FROM rappresentor_students s WHERE s.class_id = c.id AND s.is_active = 1) as total_students,
-        (SELECT COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE -amount END), 0) FROM rappresentor_cashbox_transactions ct WHERE ct.class_id = c.id) as saldo
+        ({$saldoSql}) as saldo
         FROM rappresentor_classes c ORDER BY c.is_archived ASC, c.school_year DESC, c.name ASC");
     $classesList = $stmt->fetchAll();
 } else {
     $stmt = $db->prepare("SELECT c.*, 
         (SELECT COUNT(*) FROM rappresentor_students s WHERE s.class_id = c.id AND s.is_active = 1) as total_students,
-        (SELECT COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE -amount END), 0) FROM rappresentor_cashbox_transactions ct WHERE ct.class_id = c.id) as saldo
+        ({$saldoSql}) as saldo
         FROM rappresentor_classes c 
         JOIN rappresentor_user_classes uc ON c.id = uc.class_id
         WHERE uc.user_id = :uid

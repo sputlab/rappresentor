@@ -41,16 +41,12 @@ $usciteText = "Nessuna spesa recente registrata.";
 $quotaTitle = 'Cassa Comune';
 $quotaAmount = '10,00';
 $quotaDeadline = 'prossima settimana';
+$dettaglioQuote = 'Al momento non risultano raccolte quote attive per la nostra classe.';
 
 if ($activeClassId) {
-    // Saldo e ultime uscite
-    $stmt = $db->prepare("SELECT 
-        COALESCE(SUM(CASE WHEN type = 'entrata' THEN amount ELSE 0 END), 0) as total_entrate,
-        COALESCE(SUM(CASE WHEN type = 'uscita' THEN amount ELSE 0 END), 0) as total_uscite
-        FROM rappresentor_cashbox_transactions WHERE class_id = :cid");
-    $stmt->execute(['cid' => $activeClassId]);
-    $cash = $stmt->fetch();
-    $saldo = (float)($cash['total_entrate'] ?? 0) - (float)($cash['total_uscite'] ?? 0);
+    // Saldo cassa aggiornato (entrate da quote versate + movimenti manuali - uscite)
+    $cashSummary = Helper::getClassCashSummary($db, $activeClassId);
+    $saldo = $cashSummary['saldo'];
 
     $stmt = $db->prepare("SELECT transaction_date, description, amount FROM rappresentor_cashbox_transactions WHERE class_id = :cid AND type = 'uscita' ORDER BY transaction_date DESC, id DESC LIMIT 4");
     $stmt->execute(['cid' => $activeClassId]);
@@ -62,15 +58,12 @@ if ($activeClassId) {
         }
     }
 
-    // Ultima campagna quote attiva
-    $stmt = $db->prepare("SELECT * FROM rappresentor_campaigns WHERE class_id = :cid AND is_closed = 0 ORDER BY id DESC LIMIT 1");
-    $stmt->execute(['cid' => $activeClassId]);
-    $latestCampaign = $stmt->fetch();
-    if ($latestCampaign) {
-        $quotaTitle = $latestCampaign['title'] ?? 'Cassa Comune';
-        $quotaAmount = $latestCampaign['quota_per_student'] ? number_format((float)$latestCampaign['quota_per_student'], 2, ',', '.') : '10,00';
-        $quotaDeadline = $latestCampaign['deadline'] ? Helper::formatDate($latestCampaign['deadline']) : 'prossima settimana';
-    }
+    // Campagne quote attive per la classe (tutte le campagne aperte)
+    $campSummary = Helper::getActiveCampaignsSummary($db, $activeClassId);
+    $quotaTitle = $campSummary['quota_title'];
+    $quotaAmount = $campSummary['quota_amount'];
+    $quotaDeadline = $campSummary['quota_deadline'];
+    $dettaglioQuote = $campSummary['formatted_block'];
 }
 
 // Template selezionato da visualizzare
@@ -94,6 +87,9 @@ if ($selectedTemplate) {
         '{DATA_OGGI}' => date('d/m/Y'),
         '{SALDO_CASSA}' => Helper::formatMoney($saldo),
         '{LISTA_USCITE}' => trim($usciteText),
+        '{DETTAGLIO_QUOTE}' => $dettaglioQuote,
+        '{CAMPAGNE_ATTIVE}' => $dettaglioQuote,
+        '{LISTA_QUOTE}' => $dettaglioQuote,
         '{TITOLO_RACCOLTA}' => $quotaTitle,
         '{QUOTA}' => $quotaAmount,
         '{SCADENZA}' => $quotaDeadline,
@@ -215,7 +211,7 @@ if (!$activeClassId) {
           <label for="tpl_content">Contenuto con Segnaposto Variabili *</label>
           <textarea id="tpl_content" name="content" class="form-control" rows="8" placeholder="Ciao a tutti i genitori di {CLASSE}..." required></textarea>
           <small class="form-hint">
-            Variabili supportate: <code>{CLASSE}</code>, <code>{DATA_OGGI}</code>, <code>{SALDO_CASSA}</code>, <code>{LISTA_USCITE}</code>, <code>{TITOLO_RACCOLTA}</code>, <code>{QUOTA}</code>, <code>{SCADENZA}</code>
+            Variabili supportate: <code>{CLASSE}</code>, <code>{DATA_OGGI}</code>, <code>{SALDO_CASSA}</code>, <code>{LISTA_USCITE}</code>, <code>{DETTAGLIO_QUOTE}</code>, <code>{TITOLO_RACCOLTA}</code>, <code>{QUOTA}</code>, <code>{SCADENZA}</code>
           </small>
         </div>
       </div>

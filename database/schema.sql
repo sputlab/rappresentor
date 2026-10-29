@@ -183,9 +183,9 @@ CREATE TABLE IF NOT EXISTS `rappresentor_user_classes` (
 
 -- Dati Iniziali: Template Predefiniti per i Rappresentanti
 INSERT INTO `rappresentor_templates` (`title`, `category`, `content`, `is_default`) VALUES
-('Raccolta Quote Fondo Cassa', 'Cassa', '👋 Ciao a tutti i genitori di {CLASSE}!\n\nAbbiamo avviato la raccolta quote per: *{TITOLO_RACCOLTA}*.\n💰 La quota richiesta per ciascun alunno è di *{QUOTA} €*.\n📅 Termine per il versamento: *{SCADENZA}*.\n\nModalità di versamento disponibili:\n- In contanti (in bustina con nome dell alunno)\n- Satispay / Bonifico (contattatemi in privato per i dettagli)\n\nGrazie a tutti per la collaborazione!\nI Rappresentanti di Classe', 1),
+('Raccolta Quote Fondo Cassa', 'Cassa', '👋 Ciao a tutti i genitori di {CLASSE}!\n\nVi riepiloghiamo le raccolte quote attualmente attive per la nostra classe:\n{DETTAGLIO_QUOTE}\n\nModalità di versamento disponibili:\n- In contanti (in bustina con nome dell alunno)\n- Satispay / Bonifico (contattatemi in privato per i dettagli)\n\nGrazie a tutti per la collaborazione!\nI Rappresentanti di Classe', 1),
 
-('Promemoria Pagamento Quota', 'Cassa', '📢 *Promemoria per i genitori di {CLASSE}*\n\nVi ricordiamo che è ancora in corso la raccolta quote per *{TITOLO_RACCOLTA}* ({QUOTA} €).\n⏳ La scadenza è prevista per il *{SCADENZA}*.\n\nChi non avesse ancora provveduto può farlo nei prossimi giorni. Se avete dubbi o difficoltà scrivetemi pure in privato!\nGrazie mille 😊', 1),
+('Promemoria Pagamento Quota', 'Cassa', '📢 *Promemoria per i genitori di {CLASSE}*\n\nVi ricordiamo le raccolte quote attualmente in corso per la nostra classe:\n{DETTAGLIO_QUOTE}\n\nChi non avesse ancora provveduto può farlo nei prossimi giorni. Se avete dubbi o difficoltà scrivetemi pure in privato!\nGrazie mille 😊', 1),
 
 ('Rendiconto Cassa Trasparente', 'Cassa', '📊 *Rendiconto Cassa di Classe - {CLASSE}*\nAggiornato al: {DATA_OGGI}\n\n💰 *Saldo attuale in cassa:* {SALDO_CASSA} €\n\nUltime uscite sostenute:\n{LISTA_USCITE}\n\nGrazie a tutti per la trasparenza e il supporto continuo alle attività della classe! I giustificativi e scontrini sono a disposizione per chiunque desideri visionarli.', 1),
 

@@ -147,6 +147,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 
+    if ($activeClassId && $_POST['action'] === 'edit_student') {
+        $studentId = (int)($_POST['student_id'] ?? 0);
+        $firstName = trim($_POST['first_name'] ?? '');
+        $lastName = trim($_POST['last_name'] ?? '');
+        $birthDate = !empty($_POST['birth_date']) ? $_POST['birth_date'] : null;
+        $allergies = trim($_POST['allergies'] ?? '');
+        $notes = trim($_POST['notes'] ?? '');
+
+        if (empty($firstName) || empty($lastName) || $studentId <= 0) {
+            Helper::setFlash('danger', 'Nome e cognome dell\'alunno sono obbligatori.');
+        } else {
+            $stmt = $db->prepare("UPDATE rappresentor_students SET first_name = :fn, last_name = :ln, birth_date = :bd, allergies = :al, notes = :nt WHERE id = :id AND class_id = :cid");
+            $stmt->execute([
+                'fn' => $firstName,
+                'ln' => $lastName,
+                'bd' => $birthDate,
+                'al' => $allergies,
+                'nt' => $notes,
+                'id' => $studentId,
+                'cid' => $activeClassId
+            ]);
+            Helper::setFlash('success', "Dati dell'alunno {$firstName} {$lastName} aggiornati con successo!");
+            header('Location: alunni.php');
+            exit;
+        }
+    }
+
     if ($activeClassId && $_POST['action'] === 'delete_student') {
         $studentId = (int)($_POST['student_id'] ?? 0);
         $stmt = $db->prepare("DELETE FROM rappresentor_students WHERE id = :id AND class_id = :cid");
@@ -309,8 +336,18 @@ if (!$activeClassId) {
                 </td>
                 <td style="text-align: right;">
                   <div style="display: inline-flex; gap: 6px;">
-                    <button class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi altro genitore">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi altro genitore">
                       + Genitore
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openEditStudentModal(<?= htmlspecialchars(json_encode([
+                        'id' => (int)$stu['id'],
+                        'first_name' => $stu['first_name'],
+                        'last_name' => $stu['last_name'],
+                        'birth_date' => $stu['birth_date'] ?? '',
+                        'allergies' => $stu['allergies'] ?? '',
+                        'notes' => $stu['notes'] ?? ''
+                    ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica dati alunno">
+                      ✏️ Modifica
                     </button>
                     <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler rimuovere questo alunno dalla classe?');" style="display: inline;">
                       <?= Helper::csrfField() ?>
@@ -401,8 +438,18 @@ if (!$activeClassId) {
 
           <!-- Azioni -->
           <div class="student-card-actions">
-            <button class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi altro genitore">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi altro genitore">
               + Genitore
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="openEditStudentModal(<?= htmlspecialchars(json_encode([
+                'id' => (int)$stu['id'],
+                'first_name' => $stu['first_name'],
+                'last_name' => $stu['last_name'],
+                'birth_date' => $stu['birth_date'] ?? '',
+                'allergies' => $stu['allergies'] ?? '',
+                'notes' => $stu['notes'] ?? ''
+            ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica dati alunno">
+              ✏️ Modifica
             </button>
             <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler rimuovere questo alunno dalla classe?');" style="display: inline; margin: 0;">
               <?= Helper::csrfField() ?>
@@ -503,6 +550,54 @@ if (!$activeClassId) {
   </div>
 </div>
 
+<!-- Modal Modifica Alunno -->
+<div class="modal-backdrop" id="modalEditStudent">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Modifica Alunno</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form method="POST" action="alunni.php">
+      <?= Helper::csrfField() ?>
+      <input type="hidden" name="action" value="edit_student">
+      <input type="hidden" name="student_id" id="edit_student_id" value="">
+      
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="edit_last_name">Cognome Alunno *</label>
+            <input type="text" id="edit_last_name" name="last_name" class="form-control" placeholder="es. Rossi" required>
+          </div>
+          <div class="form-group">
+            <label for="edit_first_name">Nome Alunno *</label>
+            <input type="text" id="edit_first_name" name="first_name" class="form-control" placeholder="es. Sofia" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit_birth_date">Data di Nascita</label>
+          <input type="date" id="edit_birth_date" name="birth_date" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label for="edit_allergies">Allergie Alimentari o Intolleranze (per merende/feste)</label>
+          <input type="text" id="edit_allergies" name="allergies" class="form-control" placeholder="es. Celiachia, allergia frutta a guscio, favismo...">
+        </div>
+
+        <div class="form-group">
+          <label for="edit_notes">Note Aggiuntive / Deleghe al ritiro</label>
+          <textarea id="edit_notes" name="notes" class="form-control" rows="3" placeholder="Note per uscite, nonni delegati..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Modal Aggiungi Genitore -->
 <div class="modal-backdrop" id="modalAddGuardian">
   <div class="modal">
@@ -594,6 +689,16 @@ function openAddGuardianModal(studentId, studentName) {
   document.getElementById('guardianStudentId').value = studentId;
   document.getElementById('guardianStudentName').innerText = studentName;
   openModal('modalAddGuardian');
+}
+
+function openEditStudentModal(student) {
+  document.getElementById('edit_student_id').value = student.id;
+  document.getElementById('edit_first_name').value = student.first_name || '';
+  document.getElementById('edit_last_name').value = student.last_name || '';
+  document.getElementById('edit_birth_date').value = student.birth_date || '';
+  document.getElementById('edit_allergies').value = student.allergies || '';
+  document.getElementById('edit_notes').value = student.notes || '';
+  openModal('modalEditStudent');
 }
 </script>
 

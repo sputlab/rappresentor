@@ -953,6 +953,7 @@ a:hover {
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
+  flex-wrap: wrap;
   border-top: 1px solid var(--border-color);
   padding-top: 8px;
 }

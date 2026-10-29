@@ -169,9 +169,10 @@ if (!$activeClassId) {
             $isToday = ($diffDays === 0);
             $isUrgent = ($diffDays <= 3 && $diffDays >= 0);
           ?>
-            <div style="border: 1px solid var(--border-color); border-left: 4px solid <?= $isToday ? '#dc2626' : ($isUrgent ? '#f59e0b' : '#3b82f6') ?>; border-radius: var(--radius-md); padding: 12px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; background: var(--bg-surface);">
-              <div style="flex: 1; min-width: 240px;">
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
+            <div style="border: 1px solid var(--border-color); border-left: 4px solid <?= $isToday ? '#dc2626' : ($isUrgent ? '#f59e0b' : '#3b82f6') ?>; border-radius: var(--radius-md); padding: 12px 14px; background: var(--bg-surface);">
+              <!-- Riga Superiore: Badge Scadenza, Termine e Azioni -->
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                   <span class="badge <?= $isToday ? 'badge-danger' : ($isUrgent ? 'badge-warning' : 'badge-primary') ?>" style="font-weight: 700;">
                     <?= $isToday ? '🚨 SCADE OGGI' : ($diffDays > 0 ? "⏳ Mancano {$diffDays} giorni" : "Entro oggi") ?>
                   </span>
@@ -182,32 +183,36 @@ if (!$activeClassId) {
                     <?php endif; ?>
                   </span>
                 </div>
-                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700;"><?= Helper::e($sc['title']) ?></h3>
+
+                <div style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="openEditEventModal(<?= htmlspecialchars(json_encode([
+                      'id' => (int)$sc['id'],
+                      'title' => $sc['title'],
+                      'event_type' => $sc['event_type'],
+                      'event_date' => $sc['event_date'],
+                      'event_time' => $sc['event_time'],
+                      'location' => $sc['location'],
+                      'description' => $sc['description']
+                  ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica scadenza">
+                    ✏️ Modifica
+                  </button>
+                  <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi rimuovere questa scadenza?');" style="display: inline; margin: 0;">
+                    <?= Helper::csrfField() ?>
+                    <input type="hidden" name="action" value="delete_event">
+                    <input type="hidden" name="event_id" value="<?= (int)$sc['id'] ?>">
+                    <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);" title="Elimina">🗑️</button>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Contenuto a tutta larghezza: Titolo e Dettagli -->
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-primary); line-height: 1.35;"><?= Helper::e($sc['title']) ?></h3>
                 <?php if (!empty($sc['description'])): ?>
-                  <p style="margin: 6px 0 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.35;">
+                  <p style="margin: 6px 0 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.45;">
                     <?= nl2br(Helper::e($sc['description'])) ?>
                   </p>
                 <?php endif; ?>
-              </div>
-
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <button type="button" class="btn btn-sm btn-secondary" onclick="openEditEventModal(<?= htmlspecialchars(json_encode([
-                    'id' => (int)$sc['id'],
-                    'title' => $sc['title'],
-                    'event_type' => $sc['event_type'],
-                    'event_date' => $sc['event_date'],
-                    'event_time' => $sc['event_time'],
-                    'location' => $sc['location'],
-                    'description' => $sc['description']
-                ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica scadenza">
-                  ✏️ Modifica
-                </button>
-                <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi rimuovere questa scadenza?');" style="display: inline;">
-                  <?= Helper::csrfField() ?>
-                  <input type="hidden" name="action" value="delete_event">
-                  <input type="hidden" name="event_id" value="<?= (int)$sc['id'] ?>">
-                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);" title="Elimina">🗑️</button>
-                </form>
               </div>
             </div>
           <?php endforeach; ?>
@@ -232,59 +237,73 @@ if (!$activeClassId) {
         </p>
       <?php else: ?>
         <div style="display: flex; flex-direction: column; gap: 12px;">
-          <?php foreach ($eventsList as $ev): ?>
-            <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; background: var(--bg-surface);">
-              <div style="display: flex; gap: 14px; flex: 1;">
-                <div style="font-size: 1.8rem; line-height: 1;">
-                  <?= match($ev['event_type']) {
-                    'riunione' => '👥',
-                    'gita' => '🚌',
-                    'festa' => '🎈',
-                    default => '📌'
-                  } ?>
+          <?php foreach ($eventsList as $ev): 
+            $evTypeColor = match($ev['event_type']) {
+              'gita' => '#10b981',
+              'riunione' => '#3b82f6',
+              'festa' => '#f59e0b',
+              default => 'var(--primary)'
+            };
+          ?>
+            <div style="border: 1px solid var(--border-color); border-left: 4px solid <?= $evTypeColor ?>; border-radius: var(--radius-md); padding: 12px 14px; background: var(--bg-surface);">
+              <!-- Riga Superiore: Categoria, Data/Ora e Azioni -->
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <span style="font-size: 1.3rem; line-height: 1;">
+                    <?= match($ev['event_type']) {
+                      'riunione' => '👥',
+                      'gita' => '🚌',
+                      'festa' => '🎈',
+                      default => '📌'
+                    } ?>
+                  </span>
+                  <span class="badge badge-info" style="text-transform: capitalize; font-size: 0.75rem;">
+                    <?= Helper::e($ev['event_type']) ?>
+                  </span>
+                  <span style="font-size: 0.84rem; font-weight: 600; color: var(--text-secondary);">
+                    📅 <?= Helper::formatDate($ev['event_date']) ?>
+                    <?php if ($ev['event_time']): ?>
+                      • ore <?= substr($ev['event_time'], 0, 5) ?>
+                    <?php endif; ?>
+                  </span>
                 </div>
-                <div>
-                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
-                    <span class="badge badge-info" style="text-transform: capitalize; font-size: 0.72rem;">
-                      <?= Helper::e($ev['event_type']) ?>
-                    </span>
-                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">
-                      📅 <?= Helper::formatDate($ev['event_date']) ?>
-                      <?php if ($ev['event_time']): ?>
-                        • ore <?= substr($ev['event_time'], 0, 5) ?>
-                      <?php endif; ?>
-                      <?php if (!empty($ev['location'])): ?>
-                        • 📍 <?= Helper::e($ev['location']) ?>
-                      <?php endif; ?>
-                    </span>
-                  </div>
-                  <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700;"><?= Helper::e($ev['title']) ?></h3>
-                  <?php if (!empty($ev['description'])): ?>
-                    <p style="margin: 6px 0 0; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.35;">
-                      <?= nl2br(Helper::e($ev['description'])) ?>
-                    </p>
-                  <?php endif; ?>
+
+                <div style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="openEditEventModal(<?= htmlspecialchars(json_encode([
+                      'id' => (int)$ev['id'],
+                      'title' => $ev['title'],
+                      'event_type' => $ev['event_type'],
+                      'event_date' => $ev['event_date'],
+                      'event_time' => $ev['event_time'],
+                      'location' => $ev['location'],
+                      'description' => $ev['description']
+                  ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica evento">
+                    ✏️ Modifica
+                  </button>
+                  <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi rimuovere questo evento?');" style="display: inline; margin: 0;">
+                    <?= Helper::csrfField() ?>
+                    <input type="hidden" name="action" value="delete_event">
+                    <input type="hidden" name="event_id" value="<?= (int)$ev['id'] ?>">
+                    <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);" title="Elimina evento">🗑️</button>
+                  </form>
                 </div>
               </div>
 
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <button type="button" class="btn btn-sm btn-secondary" onclick="openEditEventModal(<?= htmlspecialchars(json_encode([
-                    'id' => (int)$ev['id'],
-                    'title' => $ev['title'],
-                    'event_type' => $ev['event_type'],
-                    'event_date' => $ev['event_date'],
-                    'event_time' => $ev['event_time'],
-                    'location' => $ev['location'],
-                    'description' => $ev['description']
-                ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica evento">
-                  ✏️ Modifica
-                </button>
-                <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi rimuovere questo evento?');" style="display: inline;">
-                  <?= Helper::csrfField() ?>
-                  <input type="hidden" name="action" value="delete_event">
-                  <input type="hidden" name="event_id" value="<?= (int)$ev['id'] ?>">
-                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);" title="Elimina evento">🗑️</button>
-                </form>
+              <!-- Contenuto a tutta larghezza: Titolo, Luogo e Descrizione -->
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-primary); line-height: 1.35;">
+                  <?= Helper::e($ev['title']) ?>
+                </h3>
+                <?php if (!empty($ev['location'])): ?>
+                  <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px; display: flex; align-items: center; gap: 4px;">
+                    <span>📍</span> <span><?= Helper::e($ev['location']) ?></span>
+                  </div>
+                <?php endif; ?>
+                <?php if (!empty($ev['description'])): ?>
+                  <p style="margin: 8px 0 0; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.45;">
+                    <?= nl2br(Helper::e($ev['description'])) ?>
+                  </p>
+                <?php endif; ?>
               </div>
             </div>
           <?php endforeach; ?>

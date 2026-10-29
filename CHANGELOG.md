@@ -4,6 +4,20 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.0.0] - 2026-10-29
+### 🎉 Prima Release Pubblica Ufficiale (General Availability)
+Rappresentor raggiunge la versione stabile **1.0.0**, pronta per l'adozione e l'utilizzo in produzione da parte dei rappresentanti di classe e delle comunità scolastiche.
+
+#### Funzionalità Principali Incluse:
+- **Gestione Anagrafica & Rubrica Famiglie (`alunni.php`)**: anagrafica alunni per Nido, Infanzia, Primaria e Secondaria di I Grado, calcolo automatico età, allergie alimentari, rubrica genitori con contatti rapidi diretti (chiamata, email, WhatsApp) e gestione consensi.
+- **Gestione Cassa di Classe & Fondo Comune (`cassa.php`)**: monitoraggio versamenti quote con stati (pagato, parziale, non pagato, esonerato), calcolo automatico dei totali e saldo cassa in tempo reale, registro entrate e uscite con categorie e pezze giustificative/scontrini, sezione dedicata alle raccolte archiviate con chiusura ad accordion.
+- **Scadenze, Calendario & Compleanni (`calendario.php`)**: suddivisione verticale chiara tra Scadenze/PagoPA in alto, Eventi di classe al centro, Compleanni del mese/festeggiati in basso e Storico eventi passati in calce, con modale interattivo di modifica e cancellazione eventi.
+- **Bacheca & Messaggistica WhatsApp Intelligente (`comunicazioni.php`)**: compositore rapido con autocompilazione da eventi calendario per Riunioni/Assemblee, Gite scolastiche, Compleanni di classe e Fondo Cassa, con selezione dinamica dei metodi di pagamento tramite flag (Contanti, Bonifico, Satispay, PayPal, PagoPA).
+- **Consiglio d'Interclasse & Istanze Genitori (`consigli.php`)**: tracciamento proposte, segnalazioni e argomenti con stati di avanzamento, esiti ufficiali e storico archiviato.
+- **Gestione Multi-Classe & Collaboratori (`classi.php`, `utenti.php`)**: supporto per team fino a 5 rappresentanti/collaboratori con permessi granulari, assegnazione classi e ripristino o eliminazione definitiva classi archiviate.
+- **Esperienza Mobile-First & PWA Completa**: installabile come Progressive Web App (PWA) nativa su iOS, Android e Desktop, Service Worker offline (`rappresentor-cache-v1.0.0`), zero scorrimento orizzontale su smartphone grazie a schede verticali reattive, e layout desktop avanzato con barra laterale fissa nel canvas e scorrimento indipendente del contenuto.
+- **Guida Utente Integrata (`guida.php`)**: manuale operativo completo consultabile direttamente dall'applicazione con indice rapido interattivo e pulsante di risalita.
+
 ## [0.12.0] - 2026-10-29
 ### Aggiunto
 - **Autocompilazione WhatsApp da Eventi Calendario (Gite & Riunioni)**:

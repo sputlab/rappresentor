@@ -172,7 +172,7 @@ if (!$activeClassId) {
                 <button class="btn btn-sm btn-secondary" onclick="openUpdateTopicModal(<?= (int)$tp['id'] ?>, '<?= Helper::e(addslashes($tp['title'])) ?>', '<?= $tp['status'] ?>', '<?= Helper::e(addslashes($tp['outcome_notes'] ?? '')) ?>')">
                   ✏️ Aggiorna Esito
                 </button>
-                <form method="POST" action="consigli.php" onsubmit="return confirm('Vuoi eliminare questa voce?');" style="display: inline;">
+                <form method="POST" action="consigli.php" data-confirm="Vuoi eliminare questa voce dal consiglio?" data-confirm-title="Elimina Argomento" data-confirm-type="danger" data-confirm-btn="Elimina" style="display: inline;">
                   <?= Helper::csrfField() ?>
                   <input type="hidden" name="action" value="delete_topic">
                   <input type="hidden" name="topic_id" value="<?= (int)$tp['id'] ?>">
@@ -231,7 +231,7 @@ if (!$activeClassId) {
                 <button class="btn btn-sm btn-secondary" onclick="openUpdateTopicModal(<?= (int)$tp['id'] ?>, '<?= Helper::e(addslashes($tp['title'])) ?>', '<?= $tp['status'] ?>', '<?= Helper::e(addslashes($tp['outcome_notes'] ?? '')) ?>')">
                   ✏️ Modifica
                 </button>
-                <form method="POST" action="consigli.php" onsubmit="return confirm('Vuoi eliminare definitivamente questa voce archiviata?');" style="display: inline;">
+                <form method="POST" action="consigli.php" data-confirm="Vuoi eliminare definitivamente questa voce archiviata?" data-confirm-title="Elimina Argomento Archiviato" data-confirm-type="danger" data-confirm-btn="Elimina" style="display: inline;">
                   <?= Helper::csrfField() ?>
                   <input type="hidden" name="action" value="delete_topic">
                   <input type="hidden" name="topic_id" value="<?= (int)$tp['id'] ?>">

@@ -287,7 +287,7 @@ require_once __DIR__ . '/includes/header.php';
                       🔓 Ripristina
                     </button>
                   </form>
-                  <form method="POST" action="classi.php" onsubmit="return confirm('Sei sicuro di voler eliminare DEFINITIVAMENTE questa classe archiviata? Verranno eliminati tutti gli alunni, i movimenti contabili e i dati storici associati. Operazione irreversibile.');" style="display: inline;">
+                  <form method="POST" action="classi.php" data-confirm="Sei sicuro di voler eliminare DEFINITIVAMENTE questa classe archiviata? Verranno eliminati tutti gli alunni, i movimenti contabili e i dati storici associati. Operazione irreversibile." data-confirm-title="Eliminazione Definitiva Classe" data-confirm-type="danger" data-confirm-btn="Elimina Definitivamente" style="display: inline;">
                     <?= Helper::csrfField() ?>
                     <input type="hidden" name="action" value="delete_class">
                     <input type="hidden" name="class_id" value="<?= (int)$c['id'] ?>">

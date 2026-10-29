@@ -196,7 +196,7 @@ if (!$activeClassId) {
                   ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica scadenza">
                     ✏️ Modifica
                   </button>
-                  <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi rimuovere questa scadenza?');" style="display: inline; margin: 0;">
+                  <form method="POST" action="calendario.php" data-confirm="Vuoi rimuovere questa scadenza?" data-confirm-title="Rimuovi Scadenza" data-confirm-type="danger" data-confirm-btn="Rimuovi" style="display: inline; margin: 0;">
                     <?= Helper::csrfField() ?>
                     <input type="hidden" name="action" value="delete_event">
                     <input type="hidden" name="event_id" value="<?= (int)$sc['id'] ?>">
@@ -280,7 +280,7 @@ if (!$activeClassId) {
                   ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica evento">
                     ✏️ Modifica
                   </button>
-                  <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi rimuovere questo evento?');" style="display: inline; margin: 0;">
+                  <form method="POST" action="calendario.php" data-confirm="Vuoi rimuovere questo evento?" data-confirm-title="Rimuovi Evento" data-confirm-type="danger" data-confirm-btn="Rimuovi" style="display: inline; margin: 0;">
                     <?= Helper::csrfField() ?>
                     <input type="hidden" name="action" value="delete_event">
                     <input type="hidden" name="event_id" value="<?= (int)$ev['id'] ?>">
@@ -418,7 +418,7 @@ if (!$activeClassId) {
                     <td><strong><?= Helper::e($pe['title']) ?></strong></td>
                     <td><?= Helper::e($pe['location'] ?? '-') ?></td>
                     <td style="text-align: right;">
-                      <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi eliminare definitivamente questo evento dallo storico?');" style="display: inline;">
+                      <form method="POST" action="calendario.php" data-confirm="Vuoi eliminare definitivamente questo evento dallo storico?" data-confirm-title="Elimina Evento Storico" data-confirm-type="danger" data-confirm-btn="Elimina" style="display: inline;">
                         <?= Helper::csrfField() ?>
                         <input type="hidden" name="action" value="delete_event">
                         <input type="hidden" name="event_id" value="<?= (int)$pe['id'] ?>">
@@ -444,7 +444,7 @@ if (!$activeClassId) {
                 <span>📍 <?= Helper::e($pe['location'] ?? 'Nessun luogo') ?></span>
               </div>
               <div style="display: flex; justify-content: flex-end; margin-top: 4px; border-top: 1px dashed var(--border-color); padding-top: 4px;">
-                <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi eliminare definitivamente questo evento dallo storico?');" style="display: inline;">
+                <form method="POST" action="calendario.php" data-confirm="Vuoi eliminare definitivamente questo evento dallo storico?" data-confirm-title="Elimina Evento Storico" data-confirm-type="danger" data-confirm-btn="Elimina" style="display: inline;">
                   <?= Helper::csrfField() ?>
                   <input type="hidden" name="action" value="delete_event">
                   <input type="hidden" name="event_id" value="<?= (int)$pe['id'] ?>">

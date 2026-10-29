@@ -676,7 +676,7 @@ if (!$activeClassId) {
                     <?= $isEntrata ? '+' : '-' ?> <?= Helper::formatMoney($t['amount']) ?>
                   </td>
                   <td style="text-align: right;">
-                    <form method="POST" action="cassa.php" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questo movimento dal registro cassa?');">
+                    <form method="POST" action="cassa.php" style="display: inline;" data-confirm="Sei sicuro di voler eliminare questo movimento dal registro cassa?" data-confirm-title="Elimina Movimento Cassa" data-confirm-type="danger" data-confirm-btn="Elimina">
                       <?= Helper::csrfField() ?>
                       <input type="hidden" name="action" value="delete_transaction">
                       <input type="hidden" name="transaction_id" value="<?= (int)$t['id'] ?>">
@@ -725,7 +725,7 @@ if (!$activeClassId) {
                   <span class="badge badge-secondary" style="font-size: 0.7rem;">🧾 <?= Helper::e($t['receipt_ref']) ?></span>
                 <?php endif; ?>
               </div>
-              <form method="POST" action="cassa.php" style="display: inline; margin: 0;" onsubmit="return confirm('Sei sicuro di voler eliminare questo movimento dal registro cassa?');">
+              <form method="POST" action="cassa.php" style="display: inline; margin: 0;" data-confirm="Sei sicuro di voler eliminare questo movimento dal registro cassa?" data-confirm-title="Elimina Movimento Cassa" data-confirm-type="danger" data-confirm-btn="Elimina">
                 <?= Helper::csrfField() ?>
                 <input type="hidden" name="action" value="delete_transaction">
                 <input type="hidden" name="transaction_id" value="<?= (int)$t['id'] ?>">
@@ -790,7 +790,7 @@ if (!$activeClassId) {
                   🔓 Riapri
                 </button>
               </form>
-              <form method="POST" action="cassa.php" onsubmit="return confirm('Sei sicuro di voler eliminare DEFINITIVAMENTE questa raccolta quote archiviata? Verranno eliminati anche tutti i versamenti registrati. L\'operazione non è reversibile.');" style="display: inline;">
+              <form method="POST" action="cassa.php" data-confirm="Sei sicuro di voler eliminare DEFINITIVAMENTE questa raccolta quote archiviata? Verranno eliminati anche tutti i versamenti registrati. L'operazione non è reversibile." data-confirm-title="Eliminazione Definitiva Raccolta" data-confirm-type="danger" data-confirm-btn="Elimina Definitivamente" style="display: inline;">
                 <?= Helper::csrfField() ?>
                 <input type="hidden" name="action" value="delete_campaign">
                 <input type="hidden" name="campaign_id" value="<?= (int)$ac['id'] ?>">

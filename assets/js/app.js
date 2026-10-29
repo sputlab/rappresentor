@@ -1,6 +1,6 @@
 /**
  * Rappresentor - Client JavaScript
- * Versione SemVer: 0.2.0
+ * Versione SemVer: 1.2.0
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPwaInstallPrompt();
   initScrollTopButton();
   initSmoothAnchorLinks();
+  initConfirmDialogs();
 });
 
 /**
@@ -183,9 +184,17 @@ function showToast(message, type = 'info') {
     document.body.appendChild(container);
   }
 
+  const icons = {
+    success: '✅',
+    danger: '❌',
+    warning: '⚠️',
+    info: 'ℹ️'
+  };
+  const icon = icons[type] || 'ℹ️';
+
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span>${message}</span>`;
+  toast.innerHTML = `<span style="font-size: 1.1rem; flex-shrink: 0; line-height: 1;">${icon}</span><span style="flex: 1; line-height: 1.4;">${message}</span>`;
 
   container.appendChild(toast);
 
@@ -378,3 +387,425 @@ function initSmoothAnchorLinks() {
     });
   });
 }
+
+/**
+ * ==========================================================================
+ * Custom App Dialog & Alert System (Popups, Conferme & Avvisi Grafici)
+ * Sostituisce nativamente window.alert, window.confirm e onsubmit="return confirm(...)"
+ * ==========================================================================
+ */
+const AppDialog = (() => {
+  let backdropEl = null;
+  let cardEl = null;
+  let iconWrapperEl = null;
+  let iconEl = null;
+  let titleEl = null;
+  let messageEl = null;
+  let inputWrapperEl = null;
+  let inputEl = null;
+  let cancelBtn = null;
+  let confirmBtn = null;
+
+  let currentResolve = null;
+  let previousActiveElement = null;
+
+  function ensureDOMElements() {
+    if (backdropEl) return;
+
+    backdropEl = document.createElement('div');
+    backdropEl.id = 'appDialogBackdrop';
+    backdropEl.className = 'app-dialog-backdrop';
+    backdropEl.setAttribute('role', 'dialog');
+    backdropEl.setAttribute('aria-modal', 'true');
+    backdropEl.setAttribute('aria-hidden', 'true');
+
+    backdropEl.innerHTML = `
+      <div class="app-dialog-card" role="document">
+        <div class="app-dialog-icon-wrapper" id="appDialogIconWrapper">
+          <span id="appDialogIcon">⚠️</span>
+        </div>
+        <h3 class="app-dialog-title" id="appDialogTitle"></h3>
+        <p class="app-dialog-message" id="appDialogMessage"></p>
+        <div class="app-dialog-input-wrapper" id="appDialogInputWrapper" style="display: none;">
+          <input type="text" class="form-control" id="appDialogInput" autocomplete="off">
+        </div>
+        <div class="app-dialog-actions" id="appDialogActions">
+          <button type="button" class="btn btn-secondary" id="appDialogCancelBtn">Annulla</button>
+          <button type="button" class="btn btn-primary" id="appDialogConfirmBtn">Conferma</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(backdropEl);
+
+    cardEl = backdropEl.querySelector('.app-dialog-card');
+    iconWrapperEl = backdropEl.querySelector('#appDialogIconWrapper');
+    iconEl = backdropEl.querySelector('#appDialogIcon');
+    titleEl = backdropEl.querySelector('#appDialogTitle');
+    messageEl = backdropEl.querySelector('#appDialogMessage');
+    inputWrapperEl = backdropEl.querySelector('#appDialogInputWrapper');
+    inputEl = backdropEl.querySelector('#appDialogInput');
+    cancelBtn = backdropEl.querySelector('#appDialogCancelBtn');
+    confirmBtn = backdropEl.querySelector('#appDialogConfirmBtn');
+
+    backdropEl.addEventListener('click', (e) => {
+      if (e.target === backdropEl) {
+        handleDismiss();
+      }
+    });
+
+    cancelBtn.addEventListener('click', () => handleDismiss());
+    confirmBtn.addEventListener('click', () => handleConfirm());
+
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleConfirm();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && backdropEl && backdropEl.classList.contains('active')) {
+        e.preventDefault();
+        handleDismiss();
+      }
+    });
+  }
+
+  function handleDismiss() {
+    if (!backdropEl || !backdropEl.classList.contains('active')) return;
+    close();
+    if (currentResolve) {
+      const res = currentResolve;
+      currentResolve = null;
+      res(false);
+    }
+  }
+
+  function handleConfirm() {
+    if (!backdropEl || !backdropEl.classList.contains('active')) return;
+    const isPrompt = inputWrapperEl.style.display !== 'none';
+    const val = isPrompt ? inputEl.value : true;
+    close();
+    if (currentResolve) {
+      const res = currentResolve;
+      currentResolve = null;
+      res(val);
+    }
+  }
+
+  function open() {
+    previousActiveElement = document.activeElement;
+    backdropEl.setAttribute('aria-hidden', 'false');
+    backdropEl.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function close() {
+    if (!backdropEl) return;
+    backdropEl.classList.remove('active');
+    backdropEl.setAttribute('aria-hidden', 'true');
+    if (!document.querySelector('.modal-backdrop.active')) {
+      document.body.style.overflow = '';
+    }
+    if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+      try {
+        previousActiveElement.focus();
+      } catch (e) {}
+    }
+  }
+
+  function setupTypeAndIcon(type, customIcon) {
+    iconWrapperEl.className = `app-dialog-icon-wrapper ${type}`;
+    if (customIcon) {
+      iconEl.textContent = customIcon;
+    } else if (type === 'danger') {
+      iconEl.textContent = '🗑️';
+    } else if (type === 'warning') {
+      iconEl.textContent = '⚠️';
+    } else if (type === 'success') {
+      iconEl.textContent = '✅';
+    } else {
+      iconEl.textContent = 'ℹ️';
+    }
+
+    if (type === 'danger') {
+      confirmBtn.className = 'btn btn-danger';
+    } else if (type === 'warning') {
+      confirmBtn.className = 'btn btn-primary';
+    } else if (type === 'success') {
+      confirmBtn.className = 'btn btn-success';
+    } else {
+      confirmBtn.className = 'btn btn-primary';
+    }
+  }
+
+  /**
+   * Finestra modale di conferma (Promise<boolean>)
+   */
+  function confirm(opts) {
+    ensureDOMElements();
+    let title = 'Richiesta di conferma';
+    let message = '';
+    let type = 'warning';
+    let confirmText = 'Conferma';
+    let cancelText = 'Annulla';
+    let customIcon = null;
+
+    if (typeof opts === 'string') {
+      message = opts;
+      const lower = message.toLowerCase();
+      if (lower.includes('elimina') || lower.includes('rimuov') || lower.includes('cancella')) {
+        type = 'danger';
+        title = 'Conferma Eliminazione';
+        confirmText = 'Elimina';
+      }
+    } else if (opts && typeof opts === 'object') {
+      message = opts.message || '';
+      type = opts.type || (opts.message && /elimina|rimuov|cancella/i.test(opts.message) ? 'danger' : 'warning');
+      title = opts.title || (type === 'danger' ? 'Conferma Eliminazione' : 'Richiesta di conferma');
+      confirmText = opts.confirmText || (type === 'danger' ? 'Elimina' : 'Conferma');
+      cancelText = opts.cancelText || 'Annulla';
+      customIcon = opts.icon || null;
+    }
+
+    setupTypeAndIcon(type, customIcon);
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    inputWrapperEl.style.display = 'none';
+
+    cancelBtn.style.display = 'inline-flex';
+    cancelBtn.textContent = cancelText;
+    confirmBtn.textContent = confirmText;
+
+    open();
+    setTimeout(() => {
+      if (type === 'danger') {
+        cancelBtn.focus();
+      } else {
+        confirmBtn.focus();
+      }
+    }, 60);
+
+    return new Promise((resolve) => {
+      currentResolve = resolve;
+    });
+  }
+
+  /**
+   * Finestra modale di avviso/alert (Promise<void>)
+   */
+  function alert(opts) {
+    ensureDOMElements();
+    let title = 'Avviso';
+    let message = '';
+    let type = 'info';
+    let confirmText = 'Ho capito';
+    let customIcon = null;
+
+    if (typeof opts === 'string') {
+      message = opts;
+      const lower = message.toLowerCase();
+      if (lower.includes('errore') || lower.includes('fallit') || lower.includes('impossibile')) {
+        type = 'danger';
+        title = 'Attenzione';
+      } else if (lower.includes('successo') || lower.includes('completat') || lower.includes('salvat')) {
+        type = 'success';
+        title = 'Operazione Riuscita';
+      }
+    } else if (opts && typeof opts === 'object') {
+      message = opts.message || '';
+      type = opts.type || 'info';
+      title = opts.title || (type === 'danger' ? 'Attenzione' : (type === 'success' ? 'Operazione Riuscita' : 'Avviso'));
+      confirmText = opts.confirmText || 'Ho capito';
+      customIcon = opts.icon || null;
+    }
+
+    setupTypeAndIcon(type, customIcon);
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    inputWrapperEl.style.display = 'none';
+
+    cancelBtn.style.display = 'none';
+    confirmBtn.textContent = confirmText;
+
+    open();
+    setTimeout(() => confirmBtn.focus(), 60);
+
+    return new Promise((resolve) => {
+      currentResolve = () => resolve();
+    });
+  }
+
+  /**
+   * Finestra modale di prompt per inserimento testo (Promise<string|null>)
+   */
+  function prompt(opts) {
+    ensureDOMElements();
+    let title = 'Inserisci valore';
+    let message = '';
+    let defaultValue = '';
+    let placeholder = '';
+    let confirmText = 'Conferma';
+    let cancelText = 'Annulla';
+
+    if (typeof opts === 'string') {
+      message = opts;
+    } else if (opts && typeof opts === 'object') {
+      message = opts.message || '';
+      title = opts.title || 'Inserisci valore';
+      defaultValue = opts.defaultValue || '';
+      placeholder = opts.placeholder || '';
+      confirmText = opts.confirmText || 'Conferma';
+      cancelText = opts.cancelText || 'Annulla';
+    }
+
+    setupTypeAndIcon('info', '✏️');
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    inputWrapperEl.style.display = 'block';
+    inputEl.value = defaultValue;
+    inputEl.placeholder = placeholder;
+
+    cancelBtn.style.display = 'inline-flex';
+    cancelBtn.textContent = cancelText;
+    confirmBtn.textContent = confirmText;
+
+    open();
+    setTimeout(() => {
+      inputEl.focus();
+      inputEl.select();
+    }, 60);
+
+    return new Promise((resolve) => {
+      currentResolve = (res) => {
+        resolve(res === false ? null : res);
+      };
+    });
+  }
+
+  return {
+    confirm,
+    alert,
+    prompt
+  };
+})();
+
+/**
+ * Inizializza l'intercettazione dichiarativa di form, bottoni e link con data-confirm
+ * e migra automaticamente qualsiasi onsubmit="return confirm(...)" legacy.
+ */
+function initConfirmDialogs() {
+  // 1. Riconversione automatica per form inline legacy
+  document.querySelectorAll('form[onsubmit]').forEach((form) => {
+    const onsubmitStr = form.getAttribute('onsubmit') || '';
+    const match = onsubmitStr.match(/confirm\s*\(\s*(['"])(.*?)\1\s*\)/);
+    if (match && match[2]) {
+      const msg = match[2].replace(/\\'/g, "'").replace(/\\"/g, '"');
+      form.removeAttribute('onsubmit');
+      form.setAttribute('data-confirm', msg);
+      if (!form.getAttribute('data-confirm-title')) {
+        const isDelete = /elimina|rimuov|cancella/i.test(msg);
+        form.setAttribute('data-confirm-title', isDelete ? 'Conferma Eliminazione' : 'Richiesta di Conferma');
+        form.setAttribute('data-confirm-type', isDelete ? 'danger' : 'warning');
+        form.setAttribute('data-confirm-btn', isDelete ? 'Elimina' : 'Conferma');
+      }
+    }
+  });
+
+  // 2. Ascoltatore globale eventi submit per form con data-confirm
+  document.addEventListener('submit', async (e) => {
+    const form = e.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (!form.hasAttribute('data-confirm')) {
+      // Fallback proattivo: intercetta anche form dinamici con onsubmit="return confirm(...)"
+      const onsubmitStr = form.getAttribute('onsubmit') || '';
+      const match = onsubmitStr.match(/confirm\s*\(\s*(['"])(.*?)\1\s*\)/);
+      if (match && match[2]) {
+        form.removeAttribute('onsubmit');
+        form.setAttribute('data-confirm', match[2].replace(/\\'/g, "'").replace(/\\"/g, '"'));
+      } else {
+        return;
+      }
+    }
+    if (form._isAppConfirmed) {
+      // Se già confermato, consentiamo il submit nativo e ripristiniamo il flag subito dopo
+      setTimeout(() => { form._isAppConfirmed = false; }, 400);
+      return;
+    }
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const submitter = e.submitter;
+    const message = form.getAttribute('data-confirm');
+    const title = form.getAttribute('data-confirm-title');
+    const type = form.getAttribute('data-confirm-type') || (/elimina|rimuov|cancella/i.test(message) ? 'danger' : 'warning');
+    const confirmText = form.getAttribute('data-confirm-btn') || (type === 'danger' ? 'Elimina' : 'Conferma');
+    const cancelText = form.getAttribute('data-confirm-cancel') || 'Annulla';
+
+    const confirmed = await AppDialog.confirm({
+      title,
+      message,
+      type,
+      confirmText,
+      cancelText
+    });
+
+    if (confirmed) {
+      form._isAppConfirmed = true;
+      if (submitter && submitter.name && !form.querySelector(`input[type="hidden"][name="${submitter.name}"]`)) {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = submitter.name;
+        hidden.value = submitter.value;
+        form.appendChild(hidden);
+      }
+      if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit(submitter);
+      } else {
+        form.submit();
+      }
+    }
+  }, true);
+
+  // 3. Ascoltatore per elementi clickabili con data-confirm (link o bottoni fuori da form)
+  document.addEventListener('click', async (e) => {
+    const target = e.target.closest('[data-confirm]');
+    if (!target) return;
+    if (target.tagName.toLowerCase() === 'form') return;
+    if (target.tagName.toLowerCase() === 'button' && target.type === 'submit' && target.closest('form')) return;
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const message = target.getAttribute('data-confirm');
+    const title = target.getAttribute('data-confirm-title');
+    const type = target.getAttribute('data-confirm-type') || (/elimina|rimuov|cancella/i.test(message) ? 'danger' : 'warning');
+    const confirmText = target.getAttribute('data-confirm-btn') || (type === 'danger' ? 'Elimina' : 'Conferma');
+    const cancelText = target.getAttribute('data-confirm-cancel') || 'Annulla';
+
+    const confirmed = await AppDialog.confirm({
+      title,
+      message,
+      type,
+      confirmText,
+      cancelText
+    });
+
+    if (confirmed) {
+      if (target.tagName.toLowerCase() === 'a' && target.href) {
+        window.location.href = target.href;
+      } else if (typeof target.onclick === 'function') {
+        target.onclick();
+      }
+    }
+  }, true);
+}
+
+// Esporta globalmente sul window
+window.AppDialog = AppDialog;
+window.alert = (message) => AppDialog.alert(message);
+window.confirmAsync = (message, options) => AppDialog.confirm(options ? Object.assign({ message }, options) : message);
+window.promptAsync = (message, defaultValue) => AppDialog.prompt({ message, defaultValue });
+

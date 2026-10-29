@@ -397,7 +397,7 @@ if (!$activeClassId) {
                             ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica contatto famiglia">
                               ✏️
                             </button>
-                            <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler eliminare questo contatto famiglia?');" style="display: inline; margin: 0;">
+                            <form method="POST" action="alunni.php" data-confirm="Confermi di voler eliminare questo contatto famiglia?" data-confirm-title="Elimina Contatto Famiglia" data-confirm-type="danger" data-confirm-btn="Elimina" style="display: inline; margin: 0;">
                               <?= Helper::csrfField() ?>
                               <input type="hidden" name="action" value="delete_guardian">
                               <input type="hidden" name="guardian_id" value="<?= (int)$g['id'] ?>">
@@ -424,7 +424,7 @@ if (!$activeClassId) {
                     ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica dati alunno">
                       ✏️ Modifica
                     </button>
-                    <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler rimuovere questo alunno dalla classe?');" style="display: inline;">
+                    <form method="POST" action="alunni.php" data-confirm="Confermi di voler rimuovere questo alunno dalla classe?" data-confirm-title="Rimuovi Alunno" data-confirm-type="danger" data-confirm-btn="Rimuovi" style="display: inline;">
                       <?= Helper::csrfField() ?>
                       <input type="hidden" name="action" value="delete_student">
                       <input type="hidden" name="student_id" value="<?= (int)$stu['id'] ?>">
@@ -518,7 +518,7 @@ if (!$activeClassId) {
                     ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica contatto" style="margin-left: 2px;">
                       ✏️
                     </button>
-                    <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler eliminare questo contatto famiglia?');" style="display: inline; margin: 0;">
+                    <form method="POST" action="alunni.php" data-confirm="Confermi di voler eliminare questo contatto famiglia?" data-confirm-title="Elimina Contatto Famiglia" data-confirm-type="danger" data-confirm-btn="Elimina" style="display: inline; margin: 0;">
                       <?= Helper::csrfField() ?>
                       <input type="hidden" name="action" value="delete_guardian">
                       <input type="hidden" name="guardian_id" value="<?= (int)$g['id'] ?>">
@@ -545,7 +545,7 @@ if (!$activeClassId) {
             ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica dati alunno">
               ✏️ Modifica
             </button>
-            <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler rimuovere questo alunno dalla classe?');" style="display: inline; margin: 0;">
+            <form method="POST" action="alunni.php" data-confirm="Confermi di voler rimuovere questo alunno dalla classe?" data-confirm-title="Rimuovi Alunno" data-confirm-type="danger" data-confirm-btn="Rimuovi" style="display: inline; margin: 0;">
               <?= Helper::csrfField() ?>
               <input type="hidden" name="action" value="delete_student">
               <input type="hidden" name="student_id" value="<?= (int)$stu['id'] ?>">

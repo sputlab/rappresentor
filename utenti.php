@@ -395,7 +395,7 @@ require_once __DIR__ . '/includes/header.php';
                       </button>
                     </form>
 
-                    <form method="POST" action="utenti.php" onsubmit="return confirm('Confermi l\'eliminazione definitiva di questo collaboratore?');" style="display: inline;">
+                    <form method="POST" action="utenti.php" data-confirm="Confermi l'eliminazione definitiva di questo collaboratore?" data-confirm-title="Elimina Collaboratore" data-confirm-type="danger" data-confirm-btn="Elimina" style="display: inline;">
                       <?= Helper::csrfField() ?>
                       <input type="hidden" name="action" value="delete_user">
                       <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
@@ -489,7 +489,7 @@ require_once __DIR__ . '/includes/header.php';
               </button>
             </form>
 
-            <form method="POST" action="utenti.php" onsubmit="return confirm('Confermi l\'eliminazione definitiva di questo collaboratore?');" style="display: inline;">
+            <form method="POST" action="utenti.php" data-confirm="Confermi l'eliminazione definitiva di questo collaboratore?" data-confirm-title="Elimina Collaboratore" data-confirm-type="danger" data-confirm-btn="Elimina" style="display: inline;">
               <?= Helper::csrfField() ?>
               <input type="hidden" name="action" value="delete_user">
               <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">

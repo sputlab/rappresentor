@@ -388,6 +388,7 @@ if (!$activeClassId) {
                   <th>Tipo</th>
                   <th>Titolo</th>
                   <th>Luogo</th>
+                  <th style="text-align: right;">Azioni</th>
                 </tr>
               </thead>
               <tbody>
@@ -397,6 +398,14 @@ if (!$activeClassId) {
                     <td><span class="badge badge-secondary"><?= Helper::e($pe['event_type']) ?></span></td>
                     <td><strong><?= Helper::e($pe['title']) ?></strong></td>
                     <td><?= Helper::e($pe['location'] ?? '-') ?></td>
+                    <td style="text-align: right;">
+                      <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi eliminare definitivamente questo evento dallo storico?');" style="display: inline;">
+                        <?= Helper::csrfField() ?>
+                        <input type="hidden" name="action" value="delete_event">
+                        <input type="hidden" name="event_id" value="<?= (int)$pe['id'] ?>">
+                        <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger); padding: 3px 8px; font-size: 0.78rem;" title="Elimina definitivamente">🗑️ Elimina</button>
+                      </form>
+                    </td>
                   </tr>
                 <?php endforeach; ?>
               </tbody>
@@ -414,6 +423,14 @@ if (!$activeClassId) {
               <div style="font-size: 0.78rem; color: var(--text-muted); display: flex; justify-content: space-between;">
                 <span>📅 <?= Helper::formatDate($pe['event_date']) ?></span>
                 <span>📍 <?= Helper::e($pe['location'] ?? 'Nessun luogo') ?></span>
+              </div>
+              <div style="display: flex; justify-content: flex-end; margin-top: 4px; border-top: 1px dashed var(--border-color); padding-top: 4px;">
+                <form method="POST" action="calendario.php" onsubmit="return confirm('Vuoi eliminare definitivamente questo evento dallo storico?');" style="display: inline;">
+                  <?= Helper::csrfField() ?>
+                  <input type="hidden" name="action" value="delete_event">
+                  <input type="hidden" name="event_id" value="<?= (int)$pe['id'] ?>">
+                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger); font-size: 0.75rem; padding: 2px 8px;" title="Elimina definitivamente">🗑️ Elimina</button>
+                </form>
               </div>
             </div>
           <?php endforeach; ?>

@@ -209,6 +209,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             header("Location: cassa.php?campaign_id={$campaignId}");
             exit;
         }
+
+        // 5. Eliminazione Definitiva Raccolta Quote Archiviata
+        if ($_POST['action'] === 'delete_campaign') {
+            $campaignId = (int)($_POST['campaign_id'] ?? 0);
+            if ($campaignId > 0 && $activeClassId) {
+                // Rimuove eventuale scadenza sincronizzata a calendario
+                $evTag = "[Raccolta #{$campaignId}]";
+                $stmtEv = $db->prepare("DELETE FROM rappresentor_events WHERE class_id = :cid AND description LIKE :tag");
+                $stmtEv->execute(['cid' => $activeClassId, 'tag' => "%{$evTag}%"]);
+
+                // Elimina la campagna (i versamenti collegati cadono via CASCADE)
+                $stmt = $db->prepare("DELETE FROM rappresentor_campaigns WHERE id = :id AND class_id = :cid");
+                $stmt->execute(['id' => $campaignId, 'cid' => $activeClassId]);
+
+                Helper::setFlash('success', 'Raccolta quote archiviata eliminata definitivamente.');
+                header('Location: cassa.php');
+                exit;
+            }
+        }
     }
 }
 
@@ -758,7 +777,7 @@ if (!$activeClassId) {
               </div>
             </div>
 
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
               <a href="cassa.php?campaign_id=<?= (int)$ac['id'] ?>" class="btn btn-sm btn-secondary" title="Visualizza versamenti e quote">
                 👁️ Consulta Quote
               </a>
@@ -769,6 +788,14 @@ if (!$activeClassId) {
                 <input type="hidden" name="is_closed" value="0">
                 <button type="submit" class="btn btn-sm btn-primary" title="Riapri questa raccolta">
                   🔓 Riapri
+                </button>
+              </form>
+              <form method="POST" action="cassa.php" onsubmit="return confirm('Sei sicuro di voler eliminare DEFINITIVAMENTE questa raccolta quote archiviata? Verranno eliminati anche tutti i versamenti registrati. L\'operazione non è reversibile.');" style="display: inline;">
+                <?= Helper::csrfField() ?>
+                <input type="hidden" name="action" value="delete_campaign">
+                <input type="hidden" name="campaign_id" value="<?= (int)$ac['id'] ?>">
+                <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);" title="Elimina definitivamente questa raccolta archiviata">
+                  🗑️ Elimina
                 </button>
               </form>
             </div>

@@ -176,7 +176,7 @@ if (!$activeClassId) {
                   <?= Helper::csrfField() ?>
                   <input type="hidden" name="action" value="delete_topic">
                   <input type="hidden" name="topic_id" value="<?= (int)$tp['id'] ?>">
-                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);">🗑️</button>
+                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);" title="Elimina definitivamente questo argomento archiviato">🗑️ Elimina</button>
                 </form>
               </div>
             </div>
@@ -235,7 +235,7 @@ if (!$activeClassId) {
                   <?= Helper::csrfField() ?>
                   <input type="hidden" name="action" value="delete_topic">
                   <input type="hidden" name="topic_id" value="<?= (int)$tp['id'] ?>">
-                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);">🗑️</button>
+                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);" title="Elimina definitivamente questo argomento archiviato">🗑️ Elimina</button>
                 </form>
               </div>
             </div>

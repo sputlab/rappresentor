@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initServiceWorker();
   initPwaInstallPrompt();
   initScrollTopButton();
+  initSmoothAnchorLinks();
 });
 
 /**
@@ -319,8 +320,17 @@ function initScrollTopButton() {
   const btn = document.getElementById('btnScrollTop');
   if (!btn) return;
 
+  const mainContent = document.querySelector('.main-content');
+
+  const getScrollY = () => {
+    if (window.innerWidth >= 992 && mainContent) {
+      return mainContent.scrollTop;
+    }
+    return window.scrollY;
+  };
+
   const toggleScrollBtn = () => {
-    if (window.scrollY > 300) {
+    if (getScrollY() > 300) {
       btn.classList.add('visible');
     } else {
       btn.classList.remove('visible');
@@ -328,13 +338,43 @@ function initScrollTopButton() {
   };
 
   window.addEventListener('scroll', toggleScrollBtn, { passive: true });
+  if (mainContent) {
+    mainContent.addEventListener('scroll', toggleScrollBtn, { passive: true });
+  }
   toggleScrollBtn();
 
   btn.addEventListener('click', (e) => {
     e.preventDefault();
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+    if (window.innerWidth >= 992 && mainContent) {
+      mainContent.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    } else {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  });
+}
+
+/**
+ * Gestione navigazione ancore interne con scroll morbido nel container principale
+ */
+function initSmoothAnchorLinks() {
+  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener('click', function(e) {
+      const targetId = this.getAttribute('href').substring(1);
+      if (!targetId) return;
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        const mainContent = document.querySelector('.main-content');
+        if (window.innerWidth >= 992 && mainContent) {
+          e.preventDefault();
+          targetEl.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
     });
   });
 }

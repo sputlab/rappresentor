@@ -71,6 +71,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             header('Location: classi.php');
             exit;
         }
+
+        if ($_POST['action'] === 'delete_class') {
+            $classId = (int)($_POST['class_id'] ?? 0);
+
+            // Verifica autorizzazione
+            if (!Auth::canManageUsers() && !Helper::canManageClass($db, $classId)) {
+                Helper::setFlash('danger', 'Non sei autorizzato a eliminare questa classe.');
+                header('Location: classi.php');
+                exit;
+            }
+
+            if ($classId > 0) {
+                // Elimina la classe archiviata (i dati collegati cadono via CASCADE)
+                $stmt = $db->prepare("DELETE FROM rappresentor_classes WHERE id = :id AND is_archived = 1");
+                $stmt->execute(['id' => $classId]);
+
+                if (isset($_SESSION['active_class_id']) && (int)$_SESSION['active_class_id'] === $classId) {
+                    unset($_SESSION['active_class_id']);
+                }
+
+                Helper::setFlash('success', 'Classe archiviata eliminata definitivamente dal sistema.');
+                header('Location: classi.php');
+                exit;
+            }
+        }
     }
 }
 
@@ -251,15 +276,23 @@ require_once __DIR__ . '/includes/header.php';
                 <span>Saldo residuo: <strong><?= Helper::formatMoney($c['saldo']) ?></strong></span>
               </div>
 
-              <?php if (Auth::canManageUsers()): ?>
-                <div style="display: flex; justify-content: flex-end; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+              <?php if (Auth::canManageUsers() || Helper::canManageClass($db, (int)$c['id'])): ?>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px dashed var(--border-color); padding-top: 10px; flex-wrap: wrap;">
                   <form method="POST" action="classi.php" style="display: inline;">
                     <?= Helper::csrfField() ?>
                     <input type="hidden" name="action" value="toggle_archive">
                     <input type="hidden" name="class_id" value="<?= (int)$c['id'] ?>">
                     <input type="hidden" name="archive" value="0">
                     <button type="submit" class="btn btn-sm btn-primary" style="font-size: 0.78rem;" title="Ripristina classe tra quelle attive">
-                      🔓 Ripristina Classe
+                      🔓 Ripristina
+                    </button>
+                  </form>
+                  <form method="POST" action="classi.php" onsubmit="return confirm('Sei sicuro di voler eliminare DEFINITIVAMENTE questa classe archiviata? Verranno eliminati tutti gli alunni, i movimenti contabili e i dati storici associati. Operazione irreversibile.');" style="display: inline;">
+                    <?= Helper::csrfField() ?>
+                    <input type="hidden" name="action" value="delete_class">
+                    <input type="hidden" name="class_id" value="<?= (int)$c['id'] ?>">
+                    <button type="submit" class="btn btn-sm btn-secondary" style="font-size: 0.78rem; color: var(--danger);" title="Elimina definitivamente questa classe">
+                      🗑️ Elimina Definitivamente
                     </button>
                   </form>
                 </div>

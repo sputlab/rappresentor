@@ -4,6 +4,25 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.12.0] - 2026-10-29
+### Aggiunto
+- **Autocompilazione WhatsApp da Eventi Calendario (Gite & Riunioni)**:
+  - **Gite Scolastiche (`comunicazioni.php`)**: introdotto menu a tendina interattivo per selezionare le uscite didattiche e gite presenti in calendario, autocompilando destinazione, data, ora di ritrovo/rientro, quota, termine versamento e programma nel messaggio WhatsApp con sincronizzazione in tempo reale.
+  - **Riunioni / Consigli di Classe (`comunicazioni.php`)**: introdotto menu a tendina per selezionare riunioni, assemblee e consigli di classe dal calendario, autocompilando nome riunione, data, ora, luogo e ordine del giorno/punti da trattare nel messaggio.
+- **Eliminazione Definitiva Risorse Archiviate**:
+  - Implementata la possibilità di cancellare definitivamente tutti gli elementi archiviati con richiesta di conferma:
+    - **Raccolte quote chiuse (`cassa.php`)**: rimozione definitiva della campagna, dei versamenti associati e della scadenza sincronizzata a calendario.
+    - **Classi archiviate (`classi.php`)**: eliminazione definitiva della classe e di tutti i record collegati (alunni, quote, movimenti).
+    - **Argomenti consiglio archiviati (`consigli.php`)**: eliminazione rapida permanente.
+    - **Storico eventi passati (`calendario.php`)**: aggiunta azione di cancellazione permanente sia nella tabella desktop sia nelle schede mobile.
+- **Layout Desktop a Canvas Fisso (Sidebar Locked & Scroll Destro Indipendente)**:
+  - In visualizzazione desktop (>= 992px), la barra laterale sinistra rimane permanentemente visibile nel canvas senza richiedere scorrimento; solo il pannello dei contenuti a destra (`.main-content`) scorre verticalmente in modo fluido e indipendente.
+  - Sincronizzata la navigazione ad ancore interne e il pulsante floating "Torna in cima" per operare sul container di scroll attivo.
+
+### Modificato
+- Aggiornato Service Worker PWA (`rappresentor-cache-v0.12.0`).
+- Aggiornata la documentazione in `README.md` e la versione applicativa globale a `0.12.0`.
+
 ## [0.11.1] - 2026-10-29
 ### Risolto
 - **Correzione Errore Fatale `Helper::monthName()`**:

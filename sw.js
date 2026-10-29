@@ -1,9 +1,9 @@
 /**
  * Rappresentor - Service Worker
- * Versione SemVer: 0.11.1
+ * Versione SemVer: 0.12.0
  */
 
-const CACHE_NAME = 'rappresentor-cache-v0.11.1';
+const CACHE_NAME = 'rappresentor-cache-v0.12.0';
 
 // Asset statici di base da pre-memorizzare nella cache
 const PRECACHE_ASSETS = [

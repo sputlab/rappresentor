@@ -84,6 +84,19 @@ if ($activeClassId) {
     $stmt = $db->prepare("SELECT id, title, event_type, event_date, event_time, location, description FROM rappresentor_events WHERE class_id = :cid AND (event_type = 'compleanno' OR event_type = 'festa' OR LOWER(title) LIKE '%compleanno%') ORDER BY (event_date >= CURDATE()) DESC, event_date ASC");
     $stmt->execute(['cid' => $activeClassId]);
     $birthdayEvents = $stmt->fetchAll();
+
+    // Eventi catalogati come Gita o Uscita didattica in calendario
+    $stmt = $db->prepare("SELECT id, title, event_type, event_date, event_time, location, description FROM rappresentor_events WHERE class_id = :cid AND (event_type = 'gita' OR LOWER(title) LIKE '%gita%' OR LOWER(title) LIKE '%uscita%') ORDER BY (event_date >= CURDATE()) DESC, event_date ASC");
+    $stmt->execute(['cid' => $activeClassId]);
+    $gitaEvents = $stmt->fetchAll();
+
+    // Eventi catalogati come Riunione, Assemblea o Consiglio in calendario
+    $stmt = $db->prepare("SELECT id, title, event_type, event_date, event_time, location, description FROM rappresentor_events WHERE class_id = :cid AND (event_type = 'riunione' OR LOWER(title) LIKE '%consiglio%' OR LOWER(title) LIKE '%assemblea%' OR LOWER(title) LIKE '%riunione%' OR LOWER(title) LIKE '%interclasse%') ORDER BY (event_date >= CURDATE()) DESC, event_date ASC");
+    $stmt->execute(['cid' => $activeClassId]);
+    $riunioneEvents = $stmt->fetchAll();
+} else {
+    $gitaEvents = [];
+    $riunioneEvents = [];
 }
 
 // Template selezionato da visualizzare
@@ -108,8 +121,10 @@ if ($selectedTemplate && stripos($selectedTemplate['title'], 'Compleanno') !== f
 $isCassaTemplate = $selectedTemplate && ($selectedTemplate['category'] === 'Cassa' || stripos($selectedTemplate['title'], 'Quote') !== false || stripos($selectedTemplate['title'], 'Cassa') !== false || stripos($selectedTemplate['title'], 'Pagamento') !== false);
 $isBirthdayTemplate = $selectedTemplate && ($selectedTemplate['category'] === 'Feste' || stripos($selectedTemplate['title'], 'Compleanno') !== false || stripos($selectedTemplate['title'], 'Festa') !== false);
 $isGitaTemplate = $selectedTemplate && ($selectedTemplate['category'] === 'Gite' || stripos($selectedTemplate['title'], 'Gita') !== false || stripos($selectedTemplate['title'], 'Uscita') !== false);
+$isRiunioneTemplate = $selectedTemplate && ($selectedTemplate['category'] === 'Riunioni' || stripos($selectedTemplate['title'], 'Riunione') !== false || stripos($selectedTemplate['title'], 'Assemblea') !== false || stripos($selectedTemplate['title'], 'Consiglio') !== false);
 
 // Valori predefiniti per interpolazione
+$initialNomeRiunione = 'Assemblea di Classe con Docenti';
 $initialFesteggiato = 'Nome Alunno';
 $initialDate = date('d/m/Y', strtotime('+7 days'));
 $initialTime = '16:30';
@@ -131,6 +146,35 @@ if ($isBirthdayTemplate) {
     $initialTime = '08:30';
     $initialReturnTime = '16:30';
     $initialDescription = "- Partenza dal piazzale della scuola con pullman GT\n- Visita guidata didattica e laboratori\n- Pausa pranzo al sacco\n- Rientro a scuola previsto nel pomeriggio";
+
+    if (!empty($gitaEvents)) {
+        $firstGita = $gitaEvents[0];
+        $initialLocation = !empty($firstGita['location']) ? $firstGita['location'] : $firstGita['title'];
+        $initialDate = Helper::formatDate($firstGita['event_date']);
+        if (!empty($firstGita['event_time'])) {
+            $initialTime = substr($firstGita['event_time'], 0, 5);
+        }
+        if (!empty($firstGita['description'])) {
+            $initialDescription = $firstGita['description'];
+        }
+    }
+} elseif ($isRiunioneTemplate) {
+    $initialTime = '17:00';
+    $initialLocation = 'Presso i locali della scuola / Aula Magna';
+    if (!empty($riunioneEvents)) {
+        $firstR = $riunioneEvents[0];
+        $initialNomeRiunione = $firstR['title'];
+        $initialDate = Helper::formatDate($firstR['event_date']);
+        if (!empty($firstR['event_time'])) {
+            $initialTime = substr($firstR['event_time'], 0, 5);
+        }
+        if (!empty($firstR['location'])) {
+            $initialLocation = $firstR['location'];
+        }
+        if (!empty($firstR['description'])) {
+            $initialDescription = $firstR['description'];
+        }
+    }
 }
 
 $defaultPaymentMethods = "- In contanti (in bustina con nome dell'alunno)\n- Bonifico bancario (dati IBAN forniti in privato)\n- Satispay (contattatemi per link/numero)";
@@ -149,7 +193,7 @@ if ($selectedTemplate) {
         '{TITOLO_RACCOLTA}' => $quotaTitle,
         '{QUOTA}' => $quotaAmount,
         '{SCADENZA}' => $quotaDeadline,
-        '{NOME_EVENTO}' => 'Assemblea di Classe con Docenti',
+        '{NOME_EVENTO}' => $initialNomeRiunione,
         '{DATA_EVENTO}' => $initialDate,
         '{ORA_EVENTO}' => $initialTime,
         '{ORA_RIENTRO}' => $initialReturnTime,
@@ -365,11 +409,41 @@ if (!$activeClassId) {
       <?php endif; ?>
 
       <?php if ($isGitaTemplate): ?>
-        <!-- Pannello Ausiliario per Parametri Gita Scolastica -->
+        <!-- Pannello Ausiliario per Parametri Gita Scolastica con Menu a Tendina -->
         <div style="background: var(--bg-surface-alt); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px;">
-          <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-            <span>🚌</span> Parametri Gita Scolastica / Uscita Didattica:
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <strong style="font-size: 0.85rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              <span>🚌</span> Autocompila da Gita Scolastica a Calendario:
+            </strong>
+            <span style="font-size: 0.78rem; color: var(--text-secondary);">Seleziona per autocompilare dati e testo</span>
           </div>
+
+          <div style="margin-bottom: 10px;">
+            <select id="gitaSourceSelect" class="form-control" onchange="applyGitaSource(this)" style="font-size: 0.88rem;">
+              <option value="">-- Seleziona una gita o uscita a calendario per compilare --</option>
+              <?php if (!empty($gitaEvents)): ?>
+                <?php foreach ($gitaEvents as $ge): 
+                  $gDateFmt = Helper::formatDate($ge['event_date']);
+                  $gTime = !empty($ge['event_time']) ? substr($ge['event_time'], 0, 5) : '08:30';
+                  $gLoc = !empty($ge['location']) ? $ge['location'] : $ge['title'];
+                ?>
+                  <option value="gita_<?= $ge['id'] ?>"
+                          data-dest="<?= Helper::e($gLoc) ?>"
+                          data-date="<?= Helper::e($gDateFmt) ?>"
+                          data-ritrovo="<?= Helper::e($gTime) ?>"
+                          data-rientro="16:30"
+                          data-quota="<?= Helper::e($quotaAmount) ?>"
+                          data-scadenza="<?= Helper::e($quotaDeadline) ?>"
+                          data-desc="<?= Helper::e($ge['description'] ?? '') ?>">
+                    <?= Helper::e($ge['title']) ?> (<?= $gDateFmt ?><?= !empty($ge['location']) ? ' - ' . Helper::e($ge['location']) : '' ?>)
+                  </option>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <option value="" disabled>Nessuna gita registrata nel calendario della classe</option>
+              <?php endif; ?>
+            </select>
+          </div>
+
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
             <div>
               <label for="g_luogo" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Destinazione</label>
@@ -384,7 +458,7 @@ if (!$activeClassId) {
               <input type="text" id="g_ritrovo" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialTime) ?>" oninput="syncGitaText()">
             </div>
             <div>
-              <label for="g_rientro" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Rientro Previsto</label>
+              <label for="g_rientro" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Rientro</label>
               <input type="text" id="g_rientro" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialReturnTime) ?>" oninput="syncGitaText()">
             </div>
             <div>
@@ -392,9 +466,74 @@ if (!$activeClassId) {
               <input type="text" id="g_quota" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($quotaAmount) ?>" oninput="syncGitaText()">
             </div>
             <div>
-              <label for="g_scadenza" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Termine Versamento</label>
+              <label for="g_scadenza" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Scadenza</label>
               <input type="text" id="g_scadenza" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($quotaDeadline) ?>" oninput="syncGitaText()">
             </div>
+          </div>
+
+          <div style="margin-top: 8px;">
+            <label for="g_desc" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Programma / Dettagli</label>
+            <textarea id="g_desc" class="form-control" rows="2" style="font-size: 0.82rem; padding: 4px 8px;" oninput="syncGitaText()"><?= Helper::e($initialDescription) ?></textarea>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($isRiunioneTemplate): ?>
+        <!-- Pannello Autocompilazione Riunione / Assemblea / Consiglio da Menu a Tendina -->
+        <div style="background: var(--bg-surface-alt); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <strong style="font-size: 0.85rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              <span>👥</span> Autocompila da Riunione o Consiglio a Calendario:
+            </strong>
+            <span style="font-size: 0.78rem; color: var(--text-secondary);">Seleziona per autocompilare dati e testo</span>
+          </div>
+
+          <div style="margin-bottom: 10px;">
+            <select id="riunioneSourceSelect" class="form-control" onchange="applyRiunioneSource(this)" style="font-size: 0.88rem;">
+              <option value="">-- Seleziona una riunione o consiglio a calendario --</option>
+              <?php if (!empty($riunioneEvents)): ?>
+                <?php foreach ($riunioneEvents as $re): 
+                  $rDateFmt = Helper::formatDate($re['event_date']);
+                  $rTime = !empty($re['event_time']) ? substr($re['event_time'], 0, 5) : '17:00';
+                  $rLoc = !empty($re['location']) ? $re['location'] : 'Presso i locali della scuola / Aula Magna';
+                ?>
+                  <option value="riunione_<?= $re['id'] ?>"
+                          data-nome="<?= Helper::e($re['title']) ?>"
+                          data-date="<?= Helper::e($rDateFmt) ?>"
+                          data-time="<?= Helper::e($rTime) ?>"
+                          data-location="<?= Helper::e($rLoc) ?>"
+                          data-desc="<?= Helper::e($re['description'] ?? '') ?>">
+                    <?= Helper::e($re['title']) ?> (<?= $rDateFmt ?> ore <?= $rTime ?>)
+                  </option>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <option value="" disabled>Nessuna riunione registrata nel calendario della classe</option>
+              <?php endif; ?>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+            <div>
+              <label for="r_nome" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Nome Riunione</label>
+              <input type="text" id="r_nome" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialNomeRiunione) ?>" oninput="syncRiunioneText()">
+            </div>
+            <div>
+              <label for="r_data" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Data</label>
+              <input type="text" id="r_data" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialDate) ?>" oninput="syncRiunioneText()">
+            </div>
+            <div>
+              <label for="r_ora" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Orario</label>
+              <input type="text" id="r_ora" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialTime) ?>" oninput="syncRiunioneText()">
+            </div>
+            <div>
+              <label for="r_luogo" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Luogo</label>
+              <input type="text" id="r_luogo" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialLocation) ?>" oninput="syncRiunioneText()">
+            </div>
+          </div>
+
+          <div style="margin-top: 8px;">
+            <label for="r_desc" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Ordine del Giorno / Punti da trattare</label>
+            <textarea id="r_desc" class="form-control" rows="2" style="font-size: 0.82rem; padding: 4px 8px;" oninput="syncRiunioneText()"><?= Helper::e($initialDescription) ?></textarea>
           </div>
         </div>
       <?php endif; ?>
@@ -541,6 +680,30 @@ function syncBirthdayText() {
   }
 }
 
+// Applica selezione da menu a tendina gita scolastica
+function applyGitaSource(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) return;
+
+  const dest = opt.getAttribute('data-dest') || '';
+  const date = opt.getAttribute('data-date') || '';
+  const ritrovo = opt.getAttribute('data-ritrovo') || '08:30';
+  const rientro = opt.getAttribute('data-rientro') || '16:30';
+  const quota = opt.getAttribute('data-quota') || '10,00';
+  const scadenza = opt.getAttribute('data-scadenza') || 'prossima settimana';
+  const desc = opt.getAttribute('data-desc') || "- Partenza dal piazzale della scuola con pullman GT\n- Visita guidata didattica e laboratori\n- Pausa pranzo al sacco\n- Rientro a scuola previsto nel pomeriggio";
+
+  if (document.getElementById('g_luogo')) document.getElementById('g_luogo').value = dest;
+  if (document.getElementById('g_data')) document.getElementById('g_data').value = date;
+  if (document.getElementById('g_ritrovo')) document.getElementById('g_ritrovo').value = ritrovo;
+  if (document.getElementById('g_rientro')) document.getElementById('g_rientro').value = rientro;
+  if (document.getElementById('g_quota')) document.getElementById('g_quota').value = quota;
+  if (document.getElementById('g_scadenza')) document.getElementById('g_scadenza').value = scadenza;
+  if (document.getElementById('g_desc')) document.getElementById('g_desc').value = desc;
+
+  syncGitaText();
+}
+
 // Sincronizza i parametri della gita nel testo WhatsApp
 function syncGitaText() {
   const luogo = document.getElementById('g_luogo') ? document.getElementById('g_luogo').value.trim() : 'Destinazione Gita';
@@ -549,6 +712,7 @@ function syncGitaText() {
   const rientro = document.getElementById('g_rientro') ? document.getElementById('g_rientro').value.trim() : '16:30';
   const quota = document.getElementById('g_quota') ? document.getElementById('g_quota').value.trim() : '10,00';
   const scadenza = document.getElementById('g_scadenza') ? document.getElementById('g_scadenza').value.trim() : 'prossima settimana';
+  const desc = document.getElementById('g_desc') ? document.getElementById('g_desc').value.trim() : '';
 
   let text = baseRawTemplateContent;
   text = text.replace(/\{CLASSE\}/g, activeClassName);
@@ -558,7 +722,49 @@ function syncGitaText() {
   text = text.replace(/\{ORA_RIENTRO\}/g, rientro);
   text = text.replace(/\{QUOTA\}/g, quota);
   text = text.replace(/\{SCADENZA\}/g, scadenza);
-  text = text.replace(/\{DESCRIZIONE_EVENTO\}/g, "- Partenza dal piazzale della scuola con pullman GT\n- Visita guidata didattica e laboratori\n- Pausa pranzo al sacco\n- Rientro a scuola previsto nel pomeriggio");
+  text = text.replace(/\{DESCRIZIONE_EVENTO\}/g, desc || "- Partenza dal piazzale della scuola con pullman GT\n- Visita guidata didattica e laboratori\n- Pausa pranzo al sacco\n- Rientro a scuola previsto nel pomeriggio");
+
+  const composer = document.getElementById('composerText');
+  if (composer) {
+    composer.value = text;
+  }
+}
+
+// Applica selezione da menu a tendina riunione / consiglio
+function applyRiunioneSource(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) return;
+
+  const nome = opt.getAttribute('data-nome') || '';
+  const date = opt.getAttribute('data-date') || '';
+  const time = opt.getAttribute('data-time') || '17:00';
+  const location = opt.getAttribute('data-location') || 'Presso i locali della scuola / Aula Magna';
+  const desc = opt.getAttribute('data-desc') || "- Andamento didattico della classe\n- Programmazione attività e progetti\n- Varie ed eventuali";
+
+  if (document.getElementById('r_nome')) document.getElementById('r_nome').value = nome;
+  if (document.getElementById('r_data')) document.getElementById('r_data').value = date;
+  if (document.getElementById('r_ora')) document.getElementById('r_ora').value = time;
+  if (document.getElementById('r_luogo')) document.getElementById('r_luogo').value = location;
+  if (document.getElementById('r_desc')) document.getElementById('r_desc').value = desc;
+
+  syncRiunioneText();
+}
+
+// Sincronizza i parametri della riunione/consiglio nel testo WhatsApp
+function syncRiunioneText() {
+  const nome = document.getElementById('r_nome') ? document.getElementById('r_nome').value.trim() : 'Assemblea di Classe con Docenti';
+  const data = document.getElementById('r_data') ? document.getElementById('r_data').value.trim() : 'dd/mm/aaaa';
+  const ora = document.getElementById('r_ora') ? document.getElementById('r_ora').value.trim() : '17:00';
+  const luogo = document.getElementById('r_luogo') ? document.getElementById('r_luogo').value.trim() : 'Presso i locali della scuola / Aula Magna';
+  const desc = document.getElementById('r_desc') ? document.getElementById('r_desc').value.trim() : '';
+
+  let text = baseRawTemplateContent;
+  text = text.replace(/\{CLASSE\}/g, activeClassName);
+  text = text.replace(/\{NOME_EVENTO\}/g, nome);
+  text = text.replace(/\{DATA_EVENTO\}/g, data);
+  text = text.replace(/\{ORA_EVENTO\}/g, ora);
+  text = text.replace(/\{LUOGO\}/g, luogo);
+  text = text.replace(/\{DESCRIZIONE_EVENTO\}/g, desc || "- Andamento didattico della classe\n- Programmazione attività e progetti\n- Varie ed eventuali");
 
   const composer = document.getElementById('composerText');
   if (composer) {

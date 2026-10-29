@@ -57,6 +57,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
 
+        // 1b. Modifica Campagna di Raccolta Quote
+        if ($_POST['action'] === 'edit_campaign') {
+            $campaignId = (int)($_POST['campaign_id'] ?? 0);
+            $title = trim($_POST['title'] ?? '');
+            $description = trim($_POST['description'] ?? '');
+            $quota = (float)str_replace(',', '.', $_POST['quota_per_student'] ?? '0');
+            $deadline = !empty($_POST['deadline']) ? $_POST['deadline'] : null;
+
+            if (empty($title) || $quota <= 0 || $campaignId <= 0) {
+                Helper::setFlash('danger', 'Titolo della raccolta e quota valida sono obbligatori.');
+            } else {
+                $stmt = $db->prepare("UPDATE rappresentor_campaigns 
+                    SET title = :ti, description = :de, quota_per_student = :qu, deadline = :dl 
+                    WHERE id = :id AND class_id = :cid");
+                $stmt->execute([
+                    'ti' => $title,
+                    'de' => $description,
+                    'qu' => $quota,
+                    'dl' => $deadline,
+                    'id' => $campaignId,
+                    'cid' => $activeClassId
+                ]);
+
+                Helper::setFlash('success', "Raccolta quote '{$title}' modificata con successo!");
+                header("Location: cassa.php?campaign_id={$campaignId}");
+                exit;
+            }
+        }
+
         // 2. Nuovo Movimento Cassa (Entrata / Uscita)
         if ($_POST['action'] === 'add_transaction') {
             $type = $_POST['type'] ?? 'uscita';
@@ -341,7 +370,10 @@ if (!$activeClassId) {
     </div>
 
     <?php if ($selectedCampaign): ?>
-      <div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-sm btn-primary" onclick="openEditCampaignModal()">
+          ✏️ Modifica Raccolta
+        </button>
         <form method="POST" action="cassa.php" style="display: inline;">
           <?= Helper::csrfField() ?>
           <input type="hidden" name="action" value="toggle_campaign_status">
@@ -561,6 +593,49 @@ if (!$activeClassId) {
   </div>
 </div>
 
+<!-- Modal Modifica Raccolta Quote -->
+<div class="modal-backdrop" id="modalEditCampaign">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Modifica Raccolta Quote</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form method="POST" action="cassa.php">
+      <?= Helper::csrfField() ?>
+      <input type="hidden" name="action" value="edit_campaign">
+      <input type="hidden" name="campaign_id" id="editCampaignId" value="<?= (int)($selectedCampaign['id'] ?? 0) ?>">
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit_camp_title">Titolo Raccolta *</label>
+          <input type="text" id="edit_camp_title" name="title" class="form-control" required>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="edit_quota_per_student">Quota richiesta per alunno (€) *</label>
+            <input type="number" step="0.50" min="0.50" id="edit_quota_per_student" name="quota_per_student" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="edit_camp_deadline">Termine ultimo versamento</label>
+            <input type="date" id="edit_camp_deadline" name="deadline" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit_camp_desc">Note o spiegazione per i genitori</label>
+          <textarea id="edit_camp_desc" name="description" class="form-control" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Modal Registra Movimento Cassa -->
 <div class="modal-backdrop" id="modalAddTransaction">
   <div class="modal">
@@ -728,6 +803,17 @@ if (!$activeClassId) {
 
 <script>
 let defaultCampaignQuota = 0;
+
+function openEditCampaignModal() {
+  <?php if ($selectedCampaign): ?>
+  document.getElementById('editCampaignId').value = <?= (int)$selectedCampaign['id'] ?>;
+  document.getElementById('edit_camp_title').value = <?= json_encode($selectedCampaign['title']) ?>;
+  document.getElementById('edit_quota_per_student').value = <?= (float)$selectedCampaign['quota_per_student'] ?>;
+  document.getElementById('edit_camp_deadline').value = <?= json_encode($selectedCampaign['deadline'] ?? '') ?>;
+  document.getElementById('edit_camp_desc').value = <?= json_encode($selectedCampaign['description'] ?? '') ?>;
+  openModal('modalEditCampaign');
+  <?php endif; ?>
+}
 
 function openEditPaymentModal(id, studentName, status, amount, method, notes, quota) {
   defaultCampaignQuota = quota;

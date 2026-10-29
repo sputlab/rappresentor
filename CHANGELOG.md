@@ -4,6 +4,25 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.7.0] - 2026-10-29
+### Aggiunto
+- **Modifica Raccolta Quote Esistente (`cassa.php`)**:
+  - Aggiunto il pulsante `✏️ Modifica Raccolta` e il modale dedicato `#modalEditCampaign` per aggiornare in qualsiasi momento titolo, quota richiesta per alunno, scadenza e note descrittive della campagna selezionata.
+  - Implementata l'azione di backend `edit_campaign` con verifica di sicurezza sull'appartenenza alla classe attiva e token CSRF.
+- **Nuovo Set Icone Moderno per WebApp e PWA**:
+  - Riprogettata l'icona master vettoriale SVG (`assets/icons/master-icon.svg` e `assets/icons/master-icon-maskable.svg`) con uno stile contemporaneo ed elegante: gradiente vibrante indaco-azzurro, tocco accademico tridimensionale con nappa dorata, libro/ali di connessione scuola-famiglia e stelle guida luminose.
+  - Rigenerati tutti gli asset grafici raster ad alta definizione: `icon-512x512.png`, `icon-192x192.png`, `icon-maskable-512x512.png`, `icon-maskable-192x192.png`, `apple-touch-icon.png` (180x180), `favicon-32x32.png`, `favicon-16x16.png`, `favicon.svg` e `favicon.ico`.
+  - Aggiornato `assets/img/logo.svg` e tutte le schermate applicative (login, password dimenticata, installazione, testata desktop e burger menu).
+- **Documentazione Estesa & Pagina Guida (`guida.php`)**:
+  - Creata la pagina dedicata `guida.php` con manuale d'istruzioni esteso suddiviso in 12 sezioni tematiche.
+  - Sostituito il link "Installa App" nel menu laterale burger con il link `📖 Guida`.
+  - Istruzioni pratiche passo-passo su come installare l'applicazione come PWA su iPhone/iPad (Safari), Android (Chrome/Samsung) e computer desktop (Chrome/Edge).
+  - Indice interattivo dei contenuti (TOC) con salto rapido alle sezioni tramite ancore.
+  - Pulsante floating responsive **"↑ Torna in Cima"** (`#btnScrollTop`) per risalire agevolmente alla sommità della guida.
+
+### Modificato
+- Aggiornato Service Worker PWA (`rappresentor-cache-v0.7.0`) e cache-busting asset.
+
 ## [0.6.0] - 2026-10-29
 ### Aggiunto
 - **Messaggi WhatsApp con Tutte le Campagne Quote Attive**:

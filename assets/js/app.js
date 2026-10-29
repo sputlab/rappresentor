@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initQuickFilters();
   initServiceWorker();
   initPwaInstallPrompt();
+  initScrollTopButton();
 });
 
 /**
@@ -298,5 +299,32 @@ function initPwaInstallPrompt() {
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     showToast('Rappresentor installato con successo sulla tua schermata Home! 🎉', 'success');
+  });
+}
+
+/**
+ * Gestione pulsante floating "Torna in Cima"
+ */
+function initScrollTopButton() {
+  const btn = document.getElementById('btnScrollTop');
+  if (!btn) return;
+
+  const toggleScrollBtn = () => {
+    if (window.scrollY > 300) {
+      btn.classList.add('visible');
+    } else {
+      btn.classList.remove('visible');
+    }
+  };
+
+  window.addEventListener('scroll', toggleScrollBtn, { passive: true });
+  toggleScrollBtn();
+
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   });
 }

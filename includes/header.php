@@ -156,10 +156,10 @@ $currentScript = basename($_SERVER['PHP_SELF']);
           </a>
         <?php endif; ?>
 
-        <button type="button" class="nav-item" data-pwa-install style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: var(--primary); font-family: inherit;">
-          <span class="nav-icon">📲</span>
-          <span>Installa App</span>
-        </button>
+        <a href="guida.php" class="nav-item <?= $currentScript === 'guida.php' ? 'active' : '' ?>">
+          <span class="nav-icon">📖</span>
+          <span>Guida</span>
+        </a>
       </nav>
 
       <div class="sidebar-footer">

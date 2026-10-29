@@ -99,6 +99,10 @@ if (Auth::isAdmin()) {
     $classesList = $stmt->fetchAll();
 }
 
+// Separa classi attive da quelle archiviate
+$activeClasses = array_values(array_filter($classesList, fn($c) => empty($c['is_archived'])));
+$archivedClasses = array_values(array_filter($classesList, fn($c) => !empty($c['is_archived'])));
+
 $pageTitle = 'Gestione Classi';
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -118,8 +122,14 @@ require_once __DIR__ . '/includes/header.php';
   <?php endif; ?>
 </div>
 
+<!-- Griglia Classi Attive -->
 <div class="grid-2">
-  <?php foreach ($classesList as $c): 
+  <?php if (empty($activeClasses)): ?>
+    <div style="grid-column: span 2; padding: 32px; text-align: center; color: var(--text-muted); background: var(--bg-surface); border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+      Nessuna classe attiva trovata. Crea una nuova classe per iniziare.
+    </div>
+  <?php endif; ?>
+  <?php foreach ($activeClasses as $c): 
     $tInfo = Helper::schoolTypeDetails($c['school_type']);
     $isActive = (int)$c['id'] === (int)$activeClassId;
   ?>
@@ -132,9 +142,6 @@ require_once __DIR__ . '/includes/header.php';
               <?= Helper::e($c['name']) ?>
               <?php if ($isActive): ?>
                 <span class="badge badge-primary">Attiva</span>
-              <?php endif; ?>
-              <?php if ($c['is_archived']): ?>
-                <span class="badge badge-secondary">Archiviata</span>
               <?php endif; ?>
             </h3>
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">
@@ -191,9 +198,9 @@ require_once __DIR__ . '/includes/header.php';
             <?= Helper::csrfField() ?>
             <input type="hidden" name="action" value="toggle_archive">
             <input type="hidden" name="class_id" value="<?= (int)$c['id'] ?>">
-            <input type="hidden" name="archive" value="<?= $c['is_archived'] ? '0' : '1' ?>">
-            <button type="submit" class="btn btn-sm btn-secondary" style="font-size: 0.78rem;">
-              <?= $c['is_archived'] ? 'Ripristina' : 'Archivia' ?>
+            <input type="hidden" name="archive" value="1">
+            <button type="submit" class="btn btn-sm btn-secondary" style="font-size: 0.78rem;" title="Sposta questa classe nell'archivio">
+              📁 Archivia
             </button>
           </form>
           <?php endif; ?>
@@ -202,6 +209,62 @@ require_once __DIR__ . '/includes/header.php';
     </div>
   <?php endforeach; ?>
 </div>
+
+<!-- Sezione Classi Archiviate in fondo -->
+<?php if (!empty($archivedClasses)): ?>
+  <div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+      <h2 class="card-title">📁 Classi & Sezioni Archiviate</h2>
+      <span class="badge badge-secondary"><?= count($archivedClasses) ?> archiviate</span>
+    </div>
+    <div class="card-body">
+      <div class="grid-2">
+        <?php foreach ($archivedClasses as $c): 
+          $tInfo = Helper::schoolTypeDetails($c['school_type']);
+        ?>
+          <div class="card" style="opacity: 0.82; background: var(--bg-surface-alt); margin-bottom: 0;">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.2rem;"><?= $tInfo['icon'] ?></span>
+                <div>
+                  <h3 class="card-title" style="margin: 0; font-size: 0.95rem;">
+                    <?= Helper::e($c['name']) ?>
+                    <span class="badge badge-secondary" style="font-size: 0.7rem;">Archiviata</span>
+                  </h3>
+                  <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">
+                    <?= Helper::e($c['school_name'] ?? 'Plesso') ?> • A.S. <?= Helper::e($c['school_year']) ?>
+                  </div>
+                </div>
+              </div>
+              <span class="badge <?= $tInfo['badge'] ?>" style="font-size: 0.72rem;"><?= $tInfo['label'] ?></span>
+            </div>
+
+            <div class="card-body">
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 12px;">
+                <span>Alunni: <strong><?= (int)$c['total_students'] ?></strong></span>
+                <span>Saldo residuo: <strong><?= Helper::formatMoney($c['saldo']) ?></strong></span>
+              </div>
+
+              <?php if (Auth::canManageUsers()): ?>
+                <div style="display: flex; justify-content: flex-end; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+                  <form method="POST" action="classi.php" style="display: inline;">
+                    <?= Helper::csrfField() ?>
+                    <input type="hidden" name="action" value="toggle_archive">
+                    <input type="hidden" name="class_id" value="<?= (int)$c['id'] ?>">
+                    <input type="hidden" name="archive" value="0">
+                    <button type="submit" class="btn btn-sm btn-primary" style="font-size: 0.78rem;" title="Ripristina classe tra quelle attive">
+                      🔓 Ripristina Classe
+                    </button>
+                  </form>
+                </div>
+              <?php endif; ?>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
 
 <!-- Modal Aggiungi Classe -->
 <div class="modal-backdrop" id="modalAddClass">

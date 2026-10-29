@@ -43,6 +43,11 @@ $quotaAmount = '10,00';
 $quotaDeadline = 'prossima settimana';
 $dettaglioQuote = 'Al momento non risultano raccolte quote attive per la nostra classe.';
 
+$currentMonth = (int)date('n');
+$monthlyBirthdays = [];
+$allStudents = [];
+$birthdayEvents = [];
+
 if ($activeClassId) {
     // Saldo cassa aggiornato (entrate da quote versate + movimenti manuali - uscite)
     $cashSummary = Helper::getClassCashSummary($db, $activeClassId);
@@ -64,6 +69,21 @@ if ($activeClassId) {
     $quotaAmount = $campSummary['quota_amount'];
     $quotaDeadline = $campSummary['quota_deadline'];
     $dettaglioQuote = $campSummary['formatted_block'];
+
+    // Compleanni degli alunni del mese corrente
+    $stmt = $db->prepare("SELECT id, first_name, last_name, birth_date FROM rappresentor_students WHERE class_id = :cid AND is_active = 1 AND birth_date IS NOT NULL AND MONTH(birth_date) = :m ORDER BY DAY(birth_date) ASC");
+    $stmt->execute(['cid' => $activeClassId, 'm' => $currentMonth]);
+    $monthlyBirthdays = $stmt->fetchAll();
+
+    // Tutti gli alunni attivi della classe
+    $stmt = $db->prepare("SELECT id, first_name, last_name, birth_date FROM rappresentor_students WHERE class_id = :cid AND is_active = 1 ORDER BY last_name ASC, first_name ASC");
+    $stmt->execute(['cid' => $activeClassId]);
+    $allStudents = $stmt->fetchAll();
+
+    // Eventi catalogati come Compleanno o Festa in calendario
+    $stmt = $db->prepare("SELECT id, title, event_type, event_date, event_time, location, description FROM rappresentor_events WHERE class_id = :cid AND (event_type = 'compleanno' OR event_type = 'festa' OR LOWER(title) LIKE '%compleanno%') ORDER BY (event_date >= CURDATE()) DESC, event_date ASC");
+    $stmt->execute(['cid' => $activeClassId]);
+    $birthdayEvents = $stmt->fetchAll();
 }
 
 // Template selezionato da visualizzare
@@ -78,6 +98,42 @@ foreach ($templates as $t) {
 if (!$selectedTemplate && !empty($templates)) {
     $selectedTemplate = $templates[0];
 }
+
+// Rimuove qualsiasi testo residuo "Vi preghiamo di..." dal modello compleanno
+if ($selectedTemplate && stripos($selectedTemplate['title'], 'Compleanno') !== false) {
+    $selectedTemplate['content'] = preg_replace('/\n*Vi preghiamo di[^\n]*/i', '', $selectedTemplate['content']);
+}
+
+// Identificazione tipo di modello per controlli ausiliari interattivi
+$isCassaTemplate = $selectedTemplate && ($selectedTemplate['category'] === 'Cassa' || stripos($selectedTemplate['title'], 'Quote') !== false || stripos($selectedTemplate['title'], 'Cassa') !== false || stripos($selectedTemplate['title'], 'Pagamento') !== false);
+$isBirthdayTemplate = $selectedTemplate && ($selectedTemplate['category'] === 'Feste' || stripos($selectedTemplate['title'], 'Compleanno') !== false || stripos($selectedTemplate['title'], 'Festa') !== false);
+$isGitaTemplate = $selectedTemplate && ($selectedTemplate['category'] === 'Gite' || stripos($selectedTemplate['title'], 'Gita') !== false || stripos($selectedTemplate['title'], 'Uscita') !== false);
+
+// Valori predefiniti per interpolazione
+$initialFesteggiato = 'Nome Alunno';
+$initialDate = date('d/m/Y', strtotime('+7 days'));
+$initialTime = '16:30';
+$initialReturnTime = '16:30';
+$initialLocation = 'Presso i locali della scuola / Aula Magna';
+$initialDescription = "- Andamento didattico della classe\n- Programmazione attività e progetti\n- Varie ed eventuali";
+
+if ($isBirthdayTemplate) {
+    $initialLocation = 'Presso la sala feste';
+    if (!empty($monthlyBirthdays)) {
+        $initialFesteggiato = $monthlyBirthdays[0]['first_name'] . ' ' . $monthlyBirthdays[0]['last_name'];
+        $bDay = date('d', strtotime($monthlyBirthdays[0]['birth_date']));
+        $initialDate = date('d/m/Y', strtotime(date('Y') . '-' . date('m-d', strtotime($monthlyBirthdays[0]['birth_date']))));
+    } elseif (!empty($allStudents)) {
+        $initialFesteggiato = $allStudents[0]['first_name'] . ' ' . $allStudents[0]['last_name'];
+    }
+} elseif ($isGitaTemplate) {
+    $initialLocation = 'Museo Civico / Fattoria Didattica';
+    $initialTime = '08:30';
+    $initialReturnTime = '16:30';
+    $initialDescription = "- Partenza dal piazzale della scuola con pullman GT\n- Visita guidata didattica e laboratori\n- Pausa pranzo al sacco\n- Rientro a scuola previsto nel pomeriggio";
+}
+
+$defaultPaymentMethods = "- In contanti (in bustina con nome dell'alunno)\n- Bonifico bancario (dati IBAN forniti in privato)\n- Satispay (contattatemi per link/numero)";
 
 // Funzione di sostituzione variabili
 $interpolatedContent = "";
@@ -94,10 +150,13 @@ if ($selectedTemplate) {
         '{QUOTA}' => $quotaAmount,
         '{SCADENZA}' => $quotaDeadline,
         '{NOME_EVENTO}' => 'Assemblea di Classe con Docenti',
-        '{DATA_EVENTO}' => 'Giovedì ' . date('d/m/Y', strtotime('+7 days')),
-        '{ORA_EVENTO}' => '17:00',
-        '{LUOGO}' => 'Presso i locali della scuola / Aula Magna',
-        '{DESCRIZIONE_EVENTO}' => "- Andamento didattico della classe\n- Programmazione uscite e visite guidate\n- Varie ed eventuali"
+        '{DATA_EVENTO}' => $initialDate,
+        '{ORA_EVENTO}' => $initialTime,
+        '{ORA_RIENTRO}' => $initialReturnTime,
+        '{LUOGO}' => $initialLocation,
+        '{DESCRIZIONE_EVENTO}' => $initialDescription,
+        '{FESTEGGIATO}' => $initialFesteggiato,
+        '{METODI_PAGAMENTO}' => $defaultPaymentMethods,
     ]);
 }
 
@@ -167,6 +226,179 @@ if (!$activeClassId) {
       </button>
     </div>
     <div class="card-body">
+
+      <?php if ($isCassaTemplate): ?>
+        <!-- Pannello Selezione Metodi di Pagamento con Flag -->
+        <div style="background: var(--bg-surface-alt); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px;">
+          <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+            <span>💳</span> Modalità di versamento da includere nel messaggio:
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.85rem;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input type="checkbox" class="composer-payment-method" value="contanti" checked onchange="updateComposerPaymentMethods()"> 💶 Contanti
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input type="checkbox" class="composer-payment-method" value="bonifico" checked onchange="updateComposerPaymentMethods()"> 🏦 Bonifico
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input type="checkbox" class="composer-payment-method" value="satispay" checked onchange="updateComposerPaymentMethods()"> 📱 Satispay
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input type="checkbox" class="composer-payment-method" value="paypal" onchange="updateComposerPaymentMethods()"> 💳 PayPal
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input type="checkbox" class="composer-payment-method" value="pagopa" onchange="updateComposerPaymentMethods()"> 🏛️ PagoPA
+            </label>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($isBirthdayTemplate): ?>
+        <!-- Pannello Autocompilazione Compleanno / Festa da Menu a Tendina -->
+        <div style="background: var(--bg-surface-alt); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <strong style="font-size: 0.85rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              <span>🎂</span> Autocompila da Compleanno o Evento a Calendario:
+            </strong>
+            <span style="font-size: 0.78rem; color: var(--text-secondary);">Seleziona per autocompilare dati e testo</span>
+          </div>
+
+          <div style="margin-bottom: 10px;">
+            <select id="birthdaySourceSelect" class="form-control" onchange="applyBirthdaySource(this)" style="font-size: 0.88rem;">
+              <option value="">-- Seleziona un festeggiato o evento compleanno --</option>
+              
+              <?php if (!empty($monthlyBirthdays)): ?>
+                <optgroup label="🎂 Compleanni Alunni del Mese (<?= Helper::formatMonthName($currentMonth) ?>)">
+                  <?php foreach ($monthlyBirthdays as $mb): 
+                    $bDay = date('d', strtotime($mb['birth_date']));
+                    $bFormatted = $bDay . ' ' . Helper::formatMonthName((int)date('m', strtotime($mb['birth_date'])));
+                    $partyDate = date('Y') . '-' . date('m-d', strtotime($mb['birth_date']));
+                    $partyDateFmt = Helper::formatDate($partyDate);
+                  ?>
+                    <option value="student_<?= $mb['id'] ?>"
+                            data-name="<?= Helper::e($mb['first_name'] . ' ' . $mb['last_name']) ?>"
+                            data-date="<?= Helper::e($partyDateFmt) ?>"
+                            data-time="16:30"
+                            data-location="Presso i locali della scuola / Sala feste">
+                      <?= Helper::e($mb['first_name'] . ' ' . $mb['last_name']) ?> (<?= $bFormatted ?>)
+                    </option>
+                  <?php endforeach; ?>
+                </optgroup>
+              <?php endif; ?>
+
+              <?php if (!empty($birthdayEvents)): ?>
+                <optgroup label="📅 Eventi Compleanno in Calendario">
+                  <?php foreach ($birthdayEvents as $be): 
+                    $evDateFmt = Helper::formatDate($be['event_date']);
+                    $evTime = !empty($be['event_time']) ? substr($be['event_time'], 0, 5) : '16:30';
+                    $evLoc = !empty($be['location']) ? $be['location'] : 'Presso la sala feste';
+                    $festName = $be['title'];
+                    if (preg_match('/compleanno\s+(?:di\s+)?(.+)/i', $be['title'], $matches)) {
+                        $festName = trim($matches[1]);
+                    } elseif (preg_match('/festa\s+(?:di\s+)?(.+)/i', $be['title'], $matches)) {
+                        $festName = trim($matches[1]);
+                    }
+                  ?>
+                    <option value="event_<?= $be['id'] ?>"
+                            data-name="<?= Helper::e($festName) ?>"
+                            data-date="<?= Helper::e($evDateFmt) ?>"
+                            data-time="<?= Helper::e($evTime) ?>"
+                            data-location="<?= Helper::e($evLoc) ?>">
+                      <?= Helper::e($be['title']) ?> (<?= $evDateFmt ?><?= !empty($be['location']) ? ' - ' . Helper::e($be['location']) : '' ?>)
+                    </option>
+                  <?php endforeach; ?>
+                </optgroup>
+              <?php endif; ?>
+
+              <?php 
+                $otherStudents = array_filter($allStudents, function($s) use ($monthlyBirthdays) {
+                  foreach ($monthlyBirthdays as $mb) {
+                    if ($mb['id'] === $s['id']) return false;
+                  }
+                  return true;
+                });
+                if (!empty($otherStudents)): 
+              ?>
+                <optgroup label="👶 Altri Alunni della Classe">
+                  <?php foreach ($otherStudents as $os): 
+                    $bInfo = '';
+                    $partyDateFmt = date('d/m/Y');
+                    if (!empty($os['birth_date'])) {
+                      $bDay = date('d', strtotime($os['birth_date']));
+                      $bInfo = ' (' . $bDay . ' ' . Helper::formatMonthName((int)date('m', strtotime($os['birth_date']))) . ')';
+                      $partyDate = date('Y') . '-' . date('m-d', strtotime($os['birth_date']));
+                      $partyDateFmt = Helper::formatDate($partyDate);
+                    }
+                  ?>
+                    <option value="student_<?= $os['id'] ?>"
+                            data-name="<?= Helper::e($os['first_name'] . ' ' . $os['last_name']) ?>"
+                            data-date="<?= Helper::e($partyDateFmt) ?>"
+                            data-time="16:30"
+                            data-location="Presso i locali della scuola / Sala feste">
+                      <?= Helper::e($os['first_name'] . ' ' . $os['last_name']) ?><?= $bInfo ?>
+                    </option>
+                  <?php endforeach; ?>
+                </optgroup>
+              <?php endif; ?>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+            <div>
+              <label for="b_festeggiato" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Festeggiato/a</label>
+              <input type="text" id="b_festeggiato" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialFesteggiato) ?>" oninput="syncBirthdayText()">
+            </div>
+            <div>
+              <label for="b_data" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Data Festa</label>
+              <input type="text" id="b_data" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialDate) ?>" oninput="syncBirthdayText()">
+            </div>
+            <div>
+              <label for="b_ora" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Orario</label>
+              <input type="text" id="b_ora" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialTime) ?>" oninput="syncBirthdayText()">
+            </div>
+            <div>
+              <label for="b_luogo" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Luogo</label>
+              <input type="text" id="b_luogo" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialLocation) ?>" oninput="syncBirthdayText()">
+            </div>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($isGitaTemplate): ?>
+        <!-- Pannello Ausiliario per Parametri Gita Scolastica -->
+        <div style="background: var(--bg-surface-alt); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px;">
+          <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+            <span>🚌</span> Parametri Gita Scolastica / Uscita Didattica:
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+            <div>
+              <label for="g_luogo" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Destinazione</label>
+              <input type="text" id="g_luogo" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialLocation) ?>" oninput="syncGitaText()">
+            </div>
+            <div>
+              <label for="g_data" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Data</label>
+              <input type="text" id="g_data" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialDate) ?>" oninput="syncGitaText()">
+            </div>
+            <div>
+              <label for="g_ritrovo" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Ritrovo</label>
+              <input type="text" id="g_ritrovo" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialTime) ?>" oninput="syncGitaText()">
+            </div>
+            <div>
+              <label for="g_rientro" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Rientro Previsto</label>
+              <input type="text" id="g_rientro" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($initialReturnTime) ?>" oninput="syncGitaText()">
+            </div>
+            <div>
+              <label for="g_quota" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Quota (€)</label>
+              <input type="text" id="g_quota" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($quotaAmount) ?>" oninput="syncGitaText()">
+            </div>
+            <div>
+              <label for="g_scadenza" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; display: block;">Termine Versamento</label>
+              <input type="text" id="g_scadenza" class="form-control" style="font-size: 0.82rem; padding: 4px 8px;" value="<?= Helper::e($quotaDeadline) ?>" oninput="syncGitaText()">
+            </div>
+          </div>
+        </div>
+      <?php endif; ?>
+
       <div class="form-group">
         <label for="composerText">Testo pronto per l'invio (modificabile prima di copiare):</label>
         <textarea id="composerText" class="form-control" rows="12" style="font-family: inherit; font-size: 0.92rem; line-height: 1.5;"><?= Helper::e($interpolatedContent) ?></textarea>
@@ -203,7 +435,7 @@ if (!$activeClassId) {
           </div>
           <div class="form-group">
             <label for="tpl_cat">Categoria</label>
-            <input type="text" id="tpl_cat" name="category" class="form-control" placeholder="es. Feste, Scuola, Cassa" value="Varie">
+            <input type="text" id="tpl_cat" name="category" class="form-control" placeholder="es. Feste, Scuola, Cassa, Gite" value="Varie">
           </div>
         </div>
 
@@ -211,7 +443,7 @@ if (!$activeClassId) {
           <label for="tpl_content">Contenuto con Segnaposto Variabili *</label>
           <textarea id="tpl_content" name="content" class="form-control" rows="8" placeholder="Ciao a tutti i genitori di {CLASSE}..." required></textarea>
           <small class="form-hint">
-            Variabili supportate: <code>{CLASSE}</code>, <code>{DATA_OGGI}</code>, <code>{SALDO_CASSA}</code>, <code>{LISTA_USCITE}</code>, <code>{DETTAGLIO_QUOTE}</code>, <code>{TITOLO_RACCOLTA}</code>, <code>{QUOTA}</code>, <code>{SCADENZA}</code>
+            Variabili supportate: <code>{CLASSE}</code>, <code>{DATA_OGGI}</code>, <code>{SALDO_CASSA}</code>, <code>{LISTA_USCITE}</code>, <code>{DETTAGLIO_QUOTE}</code>, <code>{TITOLO_RACCOLTA}</code>, <code>{QUOTA}</code>, <code>{SCADENZA}</code>, <code>{FESTEGGIATO}</code>, <code>{DATA_EVENTO}</code>, <code>{ORA_EVENTO}</code>, <code>{ORA_RIENTRO}</code>, <code>{LUOGO}</code>
           </small>
         </div>
       </div>
@@ -223,5 +455,116 @@ if (!$activeClassId) {
     </form>
   </div>
 </div>
+
+<script>
+const activeClassName = <?= json_encode($className) ?>;
+const baseRawTemplateContent = <?= json_encode($selectedTemplate ? $selectedTemplate['content'] : '') ?>;
+
+// Aggiorna dinamicamente il testo delle quote/cassa in base ai metodi di pagamento selezionati
+function updateComposerPaymentMethods() {
+  const checkboxes = document.querySelectorAll('.composer-payment-method');
+  const selectedMethods = [];
+  const methodDescriptions = {
+    contanti: '- In contanti (in bustina con nome dell\'alunno)',
+    bonifico: '- Bonifico bancario (dati IBAN forniti in privato)',
+    satispay: '- Satispay (contattatemi per link/numero)',
+    paypal: '- PayPal (invio ad amici e familiari)',
+    pagopa: '- Avviso PagoPA (tramite registro elettronico)'
+  };
+
+  checkboxes.forEach(cb => {
+    if (cb.checked && methodDescriptions[cb.value]) {
+      selectedMethods.push(methodDescriptions[cb.value]);
+    }
+  });
+
+  let methodsBlock = "Modalità di versamento disponibili:\n";
+  if (selectedMethods.length > 0) {
+    methodsBlock += selectedMethods.join('\n');
+  } else {
+    methodsBlock += "- Contattare i rappresentanti per concordare la modalità";
+  }
+
+  const composer = document.getElementById('composerText');
+  if (!composer) return;
+  let text = composer.value;
+
+  if (/Modalità di versamento disponibili:[\s\S]*?(?=\n\n(?:Chi non avesse|Grazie|I Rappresentanti|$))/i.test(text)) {
+    text = text.replace(/Modalità di versamento disponibili:[\s\S]*?(?=\n\n(?:Chi non avesse|Grazie|I Rappresentanti|$))/i, methodsBlock);
+  } else if (/(\n\n(?:Chi non avesse|Grazie|I Rappresentanti))/i.test(text)) {
+    text = text.replace(/(\n\n(?:Chi non avesse|Grazie|I Rappresentanti))/i, '\n\n' + methodsBlock + '$1');
+  } else {
+    text += '\n\n' + methodsBlock;
+  }
+
+  composer.value = text;
+}
+
+// Applica selezione da menu a tendina compleanno/festa
+function applyBirthdaySource(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) return;
+
+  const name = opt.getAttribute('data-name') || '';
+  const date = opt.getAttribute('data-date') || '';
+  const time = opt.getAttribute('data-time') || '16:30';
+  const location = opt.getAttribute('data-location') || 'Presso la sala feste';
+
+  if (document.getElementById('b_festeggiato')) document.getElementById('b_festeggiato').value = name;
+  if (document.getElementById('b_data')) document.getElementById('b_data').value = date;
+  if (document.getElementById('b_ora')) document.getElementById('b_ora').value = time;
+  if (document.getElementById('b_luogo')) document.getElementById('b_luogo').value = location;
+
+  syncBirthdayText();
+}
+
+// Sincronizza i dati del compleanno nel testo WhatsApp
+function syncBirthdayText() {
+  const fest = document.getElementById('b_festeggiato') ? document.getElementById('b_festeggiato').value.trim() : 'Nome Alunno';
+  const data = document.getElementById('b_data') ? document.getElementById('b_data').value.trim() : 'dd/mm/aaaa';
+  const ora = document.getElementById('b_ora') ? document.getElementById('b_ora').value.trim() : '16:30';
+  const luogo = document.getElementById('b_luogo') ? document.getElementById('b_luogo').value.trim() : 'Presso la sala feste';
+
+  let text = baseRawTemplateContent;
+  // Assicura rimozione di qualsiasi residuo "Vi preghiamo di..."
+  text = text.replace(/\n*Vi preghiamo di[^\n]*/gi, '');
+
+  text = text.replace(/\{CLASSE\}/g, activeClassName);
+  text = text.replace(/\{FESTEGGIATO\}/g, fest || 'Nome Alunno');
+  text = text.replace(/\{DATA_EVENTO\}/g, data || 'dd/mm/aaaa');
+  text = text.replace(/\{ORA_EVENTO\}/g, ora || '16:30');
+  text = text.replace(/\{LUOGO\}/g, luogo || 'Presso la sala feste');
+
+  const composer = document.getElementById('composerText');
+  if (composer) {
+    composer.value = text;
+  }
+}
+
+// Sincronizza i parametri della gita nel testo WhatsApp
+function syncGitaText() {
+  const luogo = document.getElementById('g_luogo') ? document.getElementById('g_luogo').value.trim() : 'Destinazione Gita';
+  const data = document.getElementById('g_data') ? document.getElementById('g_data').value.trim() : 'dd/mm/aaaa';
+  const ritrovo = document.getElementById('g_ritrovo') ? document.getElementById('g_ritrovo').value.trim() : '08:30';
+  const rientro = document.getElementById('g_rientro') ? document.getElementById('g_rientro').value.trim() : '16:30';
+  const quota = document.getElementById('g_quota') ? document.getElementById('g_quota').value.trim() : '10,00';
+  const scadenza = document.getElementById('g_scadenza') ? document.getElementById('g_scadenza').value.trim() : 'prossima settimana';
+
+  let text = baseRawTemplateContent;
+  text = text.replace(/\{CLASSE\}/g, activeClassName);
+  text = text.replace(/\{LUOGO\}/g, luogo);
+  text = text.replace(/\{DATA_EVENTO\}/g, data);
+  text = text.replace(/\{ORA_EVENTO\}/g, ritrovo);
+  text = text.replace(/\{ORA_RIENTRO\}/g, rientro);
+  text = text.replace(/\{QUOTA\}/g, quota);
+  text = text.replace(/\{SCADENZA\}/g, scadenza);
+  text = text.replace(/\{DESCRIZIONE_EVENTO\}/g, "- Partenza dal piazzale della scuola con pullman GT\n- Visita guidata didattica e laboratori\n- Pausa pranzo al sacco\n- Rientro a scuola previsto nel pomeriggio");
+
+  const composer = document.getElementById('composerText');
+  if (composer) {
+    composer.value = text;
+  }
+}
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

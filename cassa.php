@@ -51,6 +51,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $insertPay->execute(['cid' => $campaignId, 'sid' => $s['id']]);
                 }
 
+                // Se è stata impostata una data di scadenza, crea automaticamente un evento nella sezione Scadenze
+                if (!empty($deadline)) {
+                    $evTitle = "Scadenza Quota: {$title}";
+                    $evDesc = "Termine ultimo versamento per la raccolta '{$title}' (Quota: " . Helper::formatMoney($quota) . " ad alunno). [Raccolta #{$campaignId}]";
+                    $stmtEv = $db->prepare("INSERT INTO rappresentor_events (class_id, title, event_type, event_date, description) VALUES (:cid, :ti, 'scadenza', :da, :de)");
+                    $stmtEv->execute([
+                        'cid' => $activeClassId,
+                        'ti' => $evTitle,
+                        'da' => $deadline,
+                        'de' => $evDesc
+                    ]);
+                }
+
                 Helper::setFlash('success', "Raccolta quote '{$title}' creata con successo per tutti gli alunni!");
                 header("Location: cassa.php?campaign_id={$campaignId}");
                 exit;
@@ -79,6 +92,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'id' => $campaignId,
                     'cid' => $activeClassId
                 ]);
+
+                // Sincronizza l'evento corrispondente a calendario se presente
+                $evTag = "[Raccolta #{$campaignId}]";
+                $checkEv = $db->prepare("SELECT id FROM rappresentor_events WHERE class_id = :cid AND description LIKE :tag LIMIT 1");
+                $checkEv->execute(['cid' => $activeClassId, 'tag' => "%{$evTag}%"]);
+                $existingEvId = $checkEv->fetchColumn();
+
+                $evTitle = "Scadenza Quota: {$title}";
+                $evDesc = "Termine ultimo versamento per la raccolta '{$title}' (Quota: " . Helper::formatMoney($quota) . " ad alunno). [Raccolta #{$campaignId}]";
+
+                if ($existingEvId) {
+                    if (!empty($deadline)) {
+                        $stmtEv = $db->prepare("UPDATE rappresentor_events SET title = :ti, event_date = :da, description = :de WHERE id = :id");
+                        $stmtEv->execute(['ti' => $evTitle, 'da' => $deadline, 'de' => $evDesc, 'id' => $existingEvId]);
+                    } else {
+                        $stmtEv = $db->prepare("DELETE FROM rappresentor_events WHERE id = :id");
+                        $stmtEv->execute(['id' => $existingEvId]);
+                    }
+                } elseif (!empty($deadline)) {
+                    $stmtEv = $db->prepare("INSERT INTO rappresentor_events (class_id, title, event_type, event_date, description) VALUES (:cid, :ti, 'scadenza', :da, :de)");
+                    $stmtEv->execute([
+                        'cid' => $activeClassId,
+                        'ti' => $evTitle,
+                        'da' => $deadline,
+                        'de' => $evDesc
+                    ]);
+                }
 
                 Helper::setFlash('success', "Raccolta quote '{$title}' modificata con successo!");
                 header("Location: cassa.php?campaign_id={$campaignId}");
@@ -206,8 +246,23 @@ if ($activeClassId) {
     $stmt->execute(['cid' => $activeClassId]);
     $campaigns = $stmt->fetchAll();
 
-    // Campagna selezionata
-    $selectedCampaignId = isset($_GET['campaign_id']) ? (int)$_GET['campaign_id'] : ($campaigns[0]['id'] ?? 0);
+    // Suddivide campagne attive e archiviate/chiuse
+    $activeCampaigns = [];
+    $archivedCampaigns = [];
+    foreach ($campaigns as $camp) {
+        if (!empty($camp['is_closed'])) {
+            $archivedCampaigns[] = $camp;
+        } else {
+            $activeCampaigns[] = $camp;
+        }
+    }
+
+    // Campagna selezionata (privilegia la prima attiva se non indicata esplicitamente in URL)
+    if (isset($_GET['campaign_id'])) {
+        $selectedCampaignId = (int)$_GET['campaign_id'];
+    } else {
+        $selectedCampaignId = !empty($activeCampaigns) ? (int)$activeCampaigns[0]['id'] : (!empty($archivedCampaigns) ? (int)$archivedCampaigns[0]['id'] : 0);
+    }
 
     if ($selectedCampaignId > 0) {
         foreach ($campaigns as $camp) {
@@ -360,11 +415,24 @@ if (!$activeClassId) {
       <h2 class="card-title">🎯 Monitoraggio Versamenti Quote</h2>
       <?php if (!empty($campaigns)): ?>
         <select onchange="window.location.href='cassa.php?campaign_id='+this.value" class="form-control" style="width: auto; padding: 4px 8px; font-size: 0.88rem;">
-          <?php foreach ($campaigns as $c): ?>
-            <option value="<?= (int)$c['id'] ?>" <?= ((int)$c['id'] === $selectedCampaignId) ? 'selected' : '' ?>>
-              <?= $c['is_closed'] ? '🔒 [Chiusa] ' : '🟢 ' ?><?= Helper::e($c['title']) ?> (Quota: <?= Helper::formatMoney($c['quota_per_student']) ?>)
-            </option>
-          <?php endforeach; ?>
+          <?php if (!empty($activeCampaigns)): ?>
+            <optgroup label="🟢 Raccolte Quote Attive">
+              <?php foreach ($activeCampaigns as $c): ?>
+                <option value="<?= (int)$c['id'] ?>" <?= ((int)$c['id'] === $selectedCampaignId) ? 'selected' : '' ?>>
+                  <?= Helper::e($c['title']) ?> (Quota: <?= Helper::formatMoney($c['quota_per_student']) ?>)
+                </option>
+              <?php endforeach; ?>
+            </optgroup>
+          <?php endif; ?>
+          <?php if (!empty($archivedCampaigns)): ?>
+            <optgroup label="🔒 Raccolte Chiuse / Archiviate">
+              <?php foreach ($archivedCampaigns as $c): ?>
+                <option value="<?= (int)$c['id'] ?>" <?= ((int)$c['id'] === $selectedCampaignId) ? 'selected' : '' ?>>
+                  🔒 [Chiusa] <?= Helper::e($c['title']) ?> (Quota: <?= Helper::formatMoney($c['quota_per_student']) ?>)
+                </option>
+              <?php endforeach; ?>
+            </optgroup>
+          <?php endif; ?>
         </select>
       <?php endif; ?>
     </div>
@@ -397,6 +465,14 @@ if (!$activeClassId) {
       $pagCount = (int)$selectedCampaign['pagati_count'];
       $pct = $totAlunni > 0 ? round(($pagCount / $totAlunni) * 100) : 0;
     ?>
+      <?php if (!empty($selectedCampaign['is_closed'])): ?>
+        <div class="alert alert-secondary" style="margin-bottom: 14px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.2rem;">🔒</span>
+          <div>
+            <strong>Raccolta Chiusa & Archiviata:</strong> I versamenti e lo stato delle quote sono conservati per storico e rendicontazione. Puoi riaprirla in qualsiasi momento con il tasto "🔓 Riapri Raccolta".
+          </div>
+        </div>
+      <?php endif; ?>
       <div style="background: var(--bg-surface-alt); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
           <div>
@@ -644,7 +720,58 @@ if (!$activeClassId) {
   </div>
 </div>
 
-<!-- Modal Nuova Raccolta Quote -->
+<!-- Sezione Raccolte Quote Chiuse & Archiviate in fondo -->
+<?php if (!empty($archivedCampaigns)): ?>
+  <div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+      <h2 class="card-title">📁 Raccolte Quote Chiuse & Archiviate</h2>
+      <span class="badge badge-secondary"><?= count($archivedCampaigns) ?> archiviate</span>
+    </div>
+    <div class="card-body">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <?php foreach ($archivedCampaigns as $ac): 
+          $acPct = $ac['totale_alunni'] > 0 ? round(($ac['pagati_count'] / $ac['totale_alunni']) * 100) : 0;
+          $isCurrent = (int)$ac['id'] === $selectedCampaignId;
+        ?>
+          <div style="background: var(--bg-surface-alt); border: 1px solid <?= $isCurrent ? 'var(--primary)' : 'var(--border-color)' ?>; border-radius: var(--radius-md); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div>
+              <div style="font-weight: 700; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
+                <span>🔒</span>
+                <span><?= Helper::e($ac['title']) ?></span>
+                <span class="badge badge-secondary" style="font-size: 0.72rem;">Chiusa</span>
+                <?php if ($isCurrent): ?>
+                  <span class="badge badge-primary" style="font-size: 0.72rem;">In consultazione</span>
+                <?php endif; ?>
+              </div>
+              <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
+                Quota: <strong><?= Helper::formatMoney($ac['quota_per_student']) ?></strong> • 
+                Raccolti: <strong><?= Helper::formatMoney($ac['totale_raccolto']) ?></strong> (<?= $ac['pagati_count'] ?>/<?= $ac['totale_alunni'] ?> alunni - <?= $acPct ?>%)
+                <?php if ($ac['deadline']): ?>
+                  • Conclusa il: <?= Helper::formatDate($ac['deadline']) ?>
+                <?php endif; ?>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <a href="cassa.php?campaign_id=<?= (int)$ac['id'] ?>" class="btn btn-sm btn-secondary" title="Visualizza versamenti e quote">
+                👁️ Consulta Quote
+              </a>
+              <form method="POST" action="cassa.php" style="display: inline;">
+                <?= Helper::csrfField() ?>
+                <input type="hidden" name="action" value="toggle_campaign_status">
+                <input type="hidden" name="campaign_id" value="<?= (int)$ac['id'] ?>">
+                <input type="hidden" name="is_closed" value="0">
+                <button type="submit" class="btn btn-sm btn-primary" title="Riapri questa raccolta">
+                  🔓 Riapri
+                </button>
+              </form>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
 <div class="modal-backdrop" id="modalAddCampaign">
   <div class="modal">
     <div class="modal-header">
@@ -858,10 +985,35 @@ if (!$activeClassId) {
       <button class="modal-close" data-modal-close>&times;</button>
     </div>
     <div class="modal-body">
-      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0;">
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0; margin-bottom: 10px;">
         Messaggio pronto da inviare nella chat dei genitori, comprensivo di <strong>tutte le raccolte quote aperte</strong> per la classe e del totale complessivo ad alunno:
       </p>
-      <textarea id="textQuoteWa" class="form-control" rows="10" readonly><?= Helper::e($quoteWa) ?></textarea>
+
+      <!-- Selezione Modalità di Pagamento tramite Flag -->
+      <div style="background: var(--bg-surface-alt); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 0.82rem; margin-bottom: 6px; color: var(--text-primary);">
+          💳 Modalità di versamento da includere nel messaggio:
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.82rem;">
+          <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="checkbox" class="quote-wa-method" value="contanti" checked onchange="updateQuoteWaText()"> 💶 Contanti
+          </label>
+          <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="checkbox" class="quote-wa-method" value="bonifico" checked onchange="updateQuoteWaText()"> 🏦 Bonifico
+          </label>
+          <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="checkbox" class="quote-wa-method" value="satispay" checked onchange="updateQuoteWaText()"> 📱 Satispay
+          </label>
+          <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="checkbox" class="quote-wa-method" value="paypal" onchange="updateQuoteWaText()"> 💳 PayPal
+          </label>
+          <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="checkbox" class="quote-wa-method" value="pagopa" onchange="updateQuoteWaText()"> 🏛️ PagoPA
+          </label>
+        </div>
+      </div>
+
+      <textarea id="textQuoteWa" class="form-control" rows="10"><?= Helper::e($quoteWa) ?></textarea>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-modal-close>Chiudi</button>
@@ -926,6 +1078,41 @@ function handleStatusChange(status) {
   } else if (status === 'non_pagato' || status === 'esonerato') {
     amountInput.value = 0;
   }
+}
+
+// Aggiorna dinamicamente il testo WhatsApp delle quote in base ai metodi selezionati
+const baseQuoteWaTemplate = <?= json_encode($quoteWa) ?>;
+function updateQuoteWaText() {
+  const checkboxes = document.querySelectorAll('.quote-wa-method');
+  const selectedMethods = [];
+  const methodDescriptions = {
+    contanti: '- In contanti (in bustina con nome dell\'alunno)',
+    bonifico: '- Bonifico bancario (dati IBAN forniti in privato)',
+    satispay: '- Satispay (contattatemi per link/numero)',
+    paypal: '- PayPal (invio amici e familiari)',
+    pagopa: '- Avviso PagoPA (tramite registro elettronico)'
+  };
+
+  checkboxes.forEach(cb => {
+    if (cb.checked && methodDescriptions[cb.value]) {
+      selectedMethods.push(methodDescriptions[cb.value]);
+    }
+  });
+
+  let methodsBlock = "Modalità di versamento disponibili:\n";
+  if (selectedMethods.length > 0) {
+    methodsBlock += selectedMethods.join('\n');
+  } else {
+    methodsBlock += "- Contattare i rappresentanti per concordare la modalità";
+  }
+
+  // Sostituisce il blocco modalità nel messaggio base
+  let updatedText = baseQuoteWaTemplate.replace(
+    /Modalità di versamento disponibili:[\s\S]*?(?=\n\nGrazie a tutti)/,
+    methodsBlock
+  );
+
+  document.getElementById('textQuoteWa').value = updatedText;
 }
 </script>
 

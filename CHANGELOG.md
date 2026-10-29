@@ -4,6 +4,34 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.0] - 2026-10-29
+### Aggiunto
+- **Sezioni Dedicate "Archiviati" a Fondo Pagina**:
+  - **Raccolte Quote Chiuse (`cassa.php`)**: sezione inferiore dedicata `📁 Raccolte Quote Chiuse & Archiviate` con riepilogo importi raccolti, stato e pulsante di riapertura rapida; menu di selezione quote separato in gruppi "Attive" e "Archiviate".
+  - **Classi Archiviate (`classi.php`)**: sezione inferiore `📁 Classi & Sezioni Archiviate` con conteggio alunni e ripristino rapido senza sovraffollare la griglia principale.
+  - **Argomenti Consiglio Archiviati (`consigli.php`)**: sezione inferiore `📁 Argomenti & Istanze Archiviate` per consultazione storica con azioni di modifica, cancellazione ed eventuale riattivazione.
+- **Modifica Eventi Esistenti a Calendario (`calendario.php`)**:
+  - Introdotto modale di modifica rapida `#modalEditEvent` con gestione backend `edit_event` per aggiornare titolo, tipologia, data, ora, luogo e note di qualunque evento in calendario.
+- **Riorganizzazione Verticale Calendario & Scadenze (`calendario.php`)**:
+  - Layout suddiviso con chiarezza in sezioni dedicate:
+    1. **⏰ Scadenze & Termini Ultimi** (in alto, filtrate per scadenze versamenti quote e PagoPA).
+    2. **📅 Eventi & Incontri di Classe** (al centro, riunioni, uscite e incontri).
+    3. **🎂 Compleanni del Mese & Festeggiati** (in basso, unendo i compleanni anagrafici degli alunni del mese e le feste a calendario).
+    4. **📜 Storico Eventi Passati** (in calce).
+- **Sincronizzazione Automatica Scadenze Quote (`cassa.php`)**:
+  - All'inserimento o modifica di una raccolta quote con termine ultimo di versamento, viene automaticamente generato/aggiornato un evento nella sezione Scadenze del calendario per la classe attiva.
+- **Nuovo Modello WhatsApp per Gite Scolastiche (`comunicazioni.php`)**:
+  - Aggiunto modello predefinito "Gita Scolastica / Uscita Didattica" in database con segnaposti `{LUOGO}`, `{DATA_EVENTO}`, `{ORA_EVENTO}`, `{ORA_RIENTRO}`, `{QUOTA}`, `{SCADENZA}` e pannello interattivo per sincronizzazione in tempo reale.
+- **Selezione Modalità di Pagamento nei Messaggi WhatsApp (`comunicazioni.php` & `cassa.php`)**:
+  - Aggiunti checkbox interattivi con flag per selezionare le modalità di pagamento (Contanti, Bonifico, Satispay, PayPal, PagoPA) con aggiornamento dinamico immediato del testo nei modelli "Raccolta Quote Fondo Cassa" e "Promemoria Pagamento Quota".
+- **Autocompilazione Modello Compleanno da Menu a Tendina (`comunicazioni.php`)**:
+  - Menu a tendina per attingere direttamente dai compleanni degli alunni del mese corrente o dagli eventi compleanno a calendario, popolando automaticamente festeggiato, data, ora e luogo.
+  - Rimossa dal modello predefinito la frase finale `"Vi preghiamo di confermare la presenza entro..."`.
+
+### Modificato
+- Aggiornato Service Worker PWA (`rappresentor-cache-v0.11.0`).
+- Aggiornata la documentazione in `README.md` e la versione applicativa globale a `0.11.0`.
+
 ## [0.10.0] - 2026-10-29
 ### Aggiunto
 - **Ottimizzazione Mobile & Layout a Schede Verticali (Zero Scorrimento Orizzontale)**:

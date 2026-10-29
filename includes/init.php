@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Inizializzazione applicativa di base
- * Versione SemVer: 0.10.0
+ * Versione SemVer: 0.11.0
  */
 
 // Avvia output buffering per prevenire problemi di headers already sent con redirect HTTP
@@ -64,8 +64,24 @@ if (file_exists($configFile)) {
                 WHERE `title` = 'Raccolta Quote Fondo Cassa' AND `is_default` = 1 AND `content` LIKE '%Abbiamo avviato la raccolta quote%'");
 
             $db->exec("UPDATE `rappresentor_templates` 
-                SET `content` = '📢 *Promemoria per i genitori di {CLASSE}*\n\nVi ricordiamo le raccolte quote attualmente in corso per la nostra classe:\n{DETTAGLIO_QUOTE}\n\nChi non avesse ancora provveduto può farlo nei prossimi giorni. Se avete dubbi o difficoltà scrivetemi pure in privato!\nGrazie mille 😊'
-                WHERE `title` = 'Promemoria Pagamento Quota' AND `is_default` = 1 AND `content` LIKE '%Vi ricordiamo che è ancora in corso la raccolta quote%'");
+                SET `content` = '📢 *Promemoria per i genitori di {CLASSE}*\n\nVi ricordiamo le raccolte quote attualmente in corso per la nostra classe:\n{DETTAGLIO_QUOTE}\n\nModalità di versamento disponibili:\n- In contanti (in bustina con nome dell alunno)\n- Satispay / Bonifico (contattatemi in privato per i dettagli)\n\nChi non avesse ancora provveduto può farlo nei prossimi giorni. Se avete dubbi o difficoltà scrivetemi pure in privato!\nGrazie mille 😊'
+                WHERE `title` = 'Promemoria Pagamento Quota' AND `is_default` = 1 AND `content` NOT LIKE '%Modalità di versamento%'");
+
+            // Template Gita Scolastica / Uscita Didattica
+            $checkGita = (int)$db->query("SELECT COUNT(*) FROM `rappresentor_templates` WHERE `title` = 'Gita Scolastica / Uscita Didattica'")->fetchColumn();
+            if ($checkGita === 0) {
+                $db->exec("INSERT INTO `rappresentor_templates` (`title`, `category`, `content`, `is_default`) VALUES (
+                    'Gita Scolastica / Uscita Didattica',
+                    'Gite',
+                    '🚌 *Uscita Didattica / Gita Scolastica - {CLASSE}* 🎒\n\nGentili genitori,\nvi comunichiamo che è in programma un uscita didattica per la classe:\n📍 *Destinazione:* {LUOGO}\n📅 *Data:* {DATA_EVENTO}\n⏰ *Orario:* ritrovo ore *{ORA_EVENTO}* (rientro previsto ore *{ORA_RIENTRO}*)\n💰 *Quota per alunno:* {QUOTA} €\n⏳ *Termine adesione e versamento:* {SCADENZA}\n\n*Programma e dettagli:*\n{DESCRIZIONE_EVENTO}\n\nRaccomandiamo abbigliamento comodo e pranzo al sacco (se previsto).\nPer qualsiasi chiarimento siamo a disposizione!\nI Rappresentanti di Classe',
+                    1
+                )");
+            }
+
+            // Aggiorna template Compleanno rimuovendo la parte finale
+            $db->exec("UPDATE `rappresentor_templates` 
+                SET `content` = '🎉 *Festa di Compleanno in arrivo!* 🎂\n\nFesteggiamo il compleanno di *{FESTEGGIATO}* ({CLASSE})!\n📅 Data: *{DATA_EVENTO}* ore *{ORA_EVENTO}*\n📍 Dove: *{LUOGO}*\n\n⚠️ *Attenzione allergie*: vi ricordiamo di rispettare le indicazioni alimentari condivise per la sicurezza di tutti i bambini.'
+                WHERE `title` = 'Compleanno / Festa di Classe' AND `is_default` = 1 AND `content` LIKE '%Vi preghiamo di confermare%'");
         } catch (\Throwable $e) {
             // Silenzioso se la tabella non è ancora presente
         }

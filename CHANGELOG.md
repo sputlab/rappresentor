@@ -4,6 +4,30 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.1.0] - 2026-10-29
+### Aggiunto
+- **Modifica Anagrafica Alunni (`alunni.php`)**:
+  - Implementata la possibilità di modificare e aggiornare i dati degli alunni registrati (nome, cognome, data di nascita, allergie/intolleranze e note/deleghe) tramite la nuova modale interattiva `#modalEditStudent`.
+  - Aggiunto il pulsante `✏️ Modifica` in ogni riga della tabella desktop e in ogni scheda mobile.
+- **Gestione Completa Contatti Famiglia (`alunni.php`)**:
+  - Aggiunta la modifica puntuale dei singoli contatti/genitori registrati tramite la nuova modale precompilata `#modalEditGuardian`.
+  - Aggiunta l'eliminazione rapida con conferma di sicurezza per ogni contatto famiglia.
+  - Introdotte le opzioni di parentela **Nonna** e **Nonno** nei form e menu a tendina di inserimento e modifica contatti.
+  - Trasformato il pulsante di inserimento da `+ Genitore` a `+ Contatto`.
+  - Auto-migrazione dello schema DB per la colonna `relation` della tabella `rappresentor_guardians` a `VARCHAR(50)` per massima compatibilità e flessibilità.
+- **Stile & Layout**:
+  - Introdotta la classe di utilità `.btn-xs` in `assets/css/style.css` per pulsanti ultra-compatti salvaspazio.
+  - Aggiunta flessibilità `flex-wrap: wrap` nei comandi delle schede mobile per garantire zero scorrimento orizzontale su qualsiasi display.
+
+### Modificato & Ottimizzato
+- **Layout Mobile Schede Eventi & Scadenze (`calendario.php`)**:
+  - Riorganizzata la struttura visiva delle schede evento su due livelli ben definiti: riga superiore con icone, badge categoria, data/ora e pulsanti azione (`✏️ Modifica`, `🗑️`), e corpo inferiore esteso al **100% della larghezza** per titolo, luogo (`📍`) e descrizione.
+  - Eliminato completamente il vuoto laterale sotto ai pulsanti e risolta la spezzatura forzata dei titoli su righe corte.
+  - Aggiunti bordi identificativi cromatici a sinistra (`border-left: 4px solid`) differenziati per tipo di evento (verde per le gite, blu per le riunioni, ambra per feste/compleanni).
+  - Estesa la medesima struttura a tutta larghezza alla sezione superiore **Scadenze & Termini Ultimi**.
+- **Service Worker (`sw.js`)**:
+  - Incrementata la cache a `rappresentor-cache-v1.1.0` per sincronizzare immediatamente gli aggiornamenti grafici e funzionali sui dispositivi con PWA installata.
+
 ## [1.0.0] - 2026-10-29
 ### 🎉 Prima Release Pubblica Ufficiale (General Availability)
 Rappresentor raggiunge la versione stabile **1.0.0**, pronta per l'adozione e l'utilizzo in produzione da parte dei rappresentanti di classe e delle comunità scolastiche.

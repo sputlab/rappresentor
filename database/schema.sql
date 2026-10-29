@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS `rappresentor_user_classes` (
 INSERT INTO `rappresentor_templates` (`title`, `category`, `content`, `is_default`) VALUES
 ('Raccolta Quote Fondo Cassa', 'Cassa', '👋 Ciao a tutti i genitori di {CLASSE}!\n\nVi riepiloghiamo le raccolte quote attualmente attive per la nostra classe:\n{DETTAGLIO_QUOTE}\n\nModalità di versamento disponibili:\n- In contanti (in bustina con nome dell alunno)\n- Satispay / Bonifico (contattatemi in privato per i dettagli)\n\nGrazie a tutti per la collaborazione!\nI Rappresentanti di Classe', 1),
 
-('Promemoria Pagamento Quota', 'Cassa', '📢 *Promemoria per i genitori di {CLASSE}*\n\nVi ricordiamo le raccolte quote attualmente in corso per la nostra classe:\n{DETTAGLIO_QUOTE}\n\nChi non avesse ancora provveduto può farlo nei prossimi giorni. Se avete dubbi o difficoltà scrivetemi pure in privato!\nGrazie mille 😊', 1),
+('Promemoria Pagamento Quota', 'Cassa', '📢 *Promemoria per i genitori di {CLASSE}*\n\nVi ricordiamo le raccolte quote attualmente in corso per la nostra classe:\n{DETTAGLIO_QUOTE}\n\nModalità di versamento disponibili:\n- In contanti (in bustina con nome dell alunno)\n- Satispay / Bonifico (contattatemi in privato per i dettagli)\n\nChi non avesse ancora provveduto può farlo nei prossimi giorni. Se avete dubbi o difficoltà scrivetemi pure in privato!\nGrazie mille 😊', 1),
 
 ('Rendiconto Cassa Trasparente', 'Cassa', '📊 *Rendiconto Cassa di Classe - {CLASSE}*\nAggiornato al: {DATA_OGGI}\n\n💰 *Saldo attuale in cassa:* {SALDO_CASSA} €\n\nUltime uscite sostenute:\n{LISTA_USCITE}\n\nGrazie a tutti per la trasparenza e il supporto continuo alle attività della classe! I giustificativi e scontrini sono a disposizione per chiunque desideri visionarli.', 1),
 
@@ -193,7 +193,9 @@ INSERT INTO `rappresentor_templates` (`title`, `category`, `content`, `is_defaul
 
 ('Avviso Sciopero / Orario Ridotto', 'Scuola', '⚠️ *Comunicazione Importante - {CLASSE}*\n\nSi comunica che per la giornata di *{DATA_EVENTO}* è stato proclamato uno sciopero del personale scolastico.\nSi raccomanda di accompagnare personalmente i bambini la mattina per verificare l effettivo ingresso e l orario garantito.\n\nBuona giornata!', 1),
 
-('Compleanno / Festa di Classe', 'Feste', '🎉 *Festa di Compleanno in arrivo!* 🎂\n\nFesteggiamo il compleanno di un compagno/a di {CLASSE}!\n📅 Data: *{DATA_EVENTO}* ore *{ORA_EVENTO}*\n📍 Dove: *{LUOGO}*\n\n⚠️ *Attenzione allergie*: vi ricordiamo di rispettare le indicazioni alimentari condivise per la sicurezza di tutti i bambini.\n\nVi preghiamo di confermare la presenza entro il {SCADENZA}. Vi aspettiamo!', 1);
+('Gita Scolastica / Uscita Didattica', 'Gite', '🚌 *Uscita Didattica / Gita Scolastica - {CLASSE}* 🎒\n\nGentili genitori,\nvi comunichiamo che è in programma un uscita didattica per la classe:\n📍 *Destinazione:* {LUOGO}\n📅 *Data:* {DATA_EVENTO}\n⏰ *Orario:* ritrovo ore *{ORA_EVENTO}* (rientro previsto ore *{ORA_RIENTRO}*)\n💰 *Quota per alunno:* {QUOTA} €\n⏳ *Termine adesione e versamento:* {SCADENZA}\n\n*Programma e dettagli:*\n{DESCRIZIONE_EVENTO}\n\nRaccomandiamo abbigliamento comodo e pranzo al sacco (se previsto).\nPer qualsiasi chiarimento siamo a disposizione!\nI Rappresentanti di Classe', 1),
+
+('Compleanno / Festa di Classe', 'Feste', '🎉 *Festa di Compleanno in arrivo!* 🎂\n\nFesteggiamo il compleanno di *{FESTEGGIATO}* ({CLASSE})!\n📅 Data: *{DATA_EVENTO}* ore *{ORA_EVENTO}*\n📍 Dove: *{LUOGO}*\n\n⚠️ *Attenzione allergie*: vi ricordiamo di rispettare le indicazioni alimentari condivise per la sicurezza di tutti i bambini.', 1);
 
 -- Impostazioni di default
 INSERT INTO `rappresentor_settings` (`key_name`, `key_value`) VALUES

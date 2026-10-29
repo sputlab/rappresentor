@@ -69,6 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // Carica tutti gli argomenti della classe
 $topics = [];
+$activeTopics = [];
+$archivedTopics = [];
 $reportTopics = '';
 
 if ($activeClassId) {
@@ -76,22 +78,28 @@ if ($activeClassId) {
     $stmt->execute(['cid' => $activeClassId]);
     $topics = $stmt->fetchAll();
 
+    foreach ($topics as $tp) {
+        if ($tp['status'] === 'archiviato') {
+            $archivedTopics[] = $tp;
+        } else {
+            $activeTopics[] = $tp;
+        }
+    }
+
     // Prepara testo riassuntivo per WhatsApp
     $reportTopics = "📋 *Punti & Richieste per il Consiglio d'Interclasse/Docenti*\n";
     $reportTopics .= "🏫 " . ($activeClass['name'] ?? 'Classe') . "\n\n";
-    foreach ($topics as $t) {
-        if ($t['status'] !== 'archiviato') {
-            $statusIcon = match($t['status']) {
-                'proposto' => '🟡 Proposto',
-                'in_discussione' => '🟠 In trattazione',
-                'approvato' => '🟢 Accolto/Approvato',
-                'risolto' => '✅ Risolto',
-                default => '⚪'
-            };
-            $reportTopics .= "• *[" . strtoupper($t['category']) . "]* " . $t['title'] . " (" . $statusIcon . ")\n";
-            if (!empty($t['outcome_notes'])) {
-                $reportTopics .= "  ↳ _Risposta docenti_: " . $t['outcome_notes'] . "\n";
-            }
+    foreach ($activeTopics as $t) {
+        $statusIcon = match($t['status']) {
+            'proposto' => '🟡 Proposto',
+            'in_discussione' => '🟠 In trattazione',
+            'approvato' => '🟢 Accolto/Approvato',
+            'risolto' => '✅ Risolto',
+            default => '⚪'
+        };
+        $reportTopics .= "• *[" . strtoupper($t['category']) . "]* " . $t['title'] . " (" . $statusIcon . ")\n";
+        if (!empty($t['outcome_notes'])) {
+            $reportTopics .= "  ↳ _Risposta docenti_: " . $t['outcome_notes'] . "\n";
         }
     }
 }
@@ -123,16 +131,16 @@ if (!$activeClassId) {
 <div class="card">
   <div class="card-header">
     <h2 class="card-title">📌 Quaderno delle Istanze e Problematiche</h2>
-    <span class="badge badge-primary"><?= count($topics) ?> segnalazioni</span>
+    <span class="badge badge-primary"><?= count($activeTopics) ?> attive</span>
   </div>
   <div class="card-body">
-    <?php if (empty($topics)): ?>
+    <?php if (empty($activeTopics)): ?>
       <p style="color: var(--text-muted); text-align: center; padding: 32px 0; margin: 0;">
-        Nessun argomento inserito. Clicca su "+ Nuovo Argomento" per annotare una richiesta ricevuta dai genitori.
+        Nessun argomento attivo. Clicca su "+ Nuovo Argomento" per annotare una richiesta ricevuta dai genitori.
       </p>
     <?php else: ?>
       <div style="display: flex; flex-direction: column; gap: 14px;">
-        <?php foreach ($topics as $tp): 
+        <?php foreach ($activeTopics as $tp): 
           $badgeClass = match($tp['status']) {
             'proposto' => 'badge-warning',
             'in_discussione' => 'badge-info',
@@ -168,7 +176,7 @@ if (!$activeClassId) {
                   <?= Helper::csrfField() ?>
                   <input type="hidden" name="action" value="delete_topic">
                   <input type="hidden" name="topic_id" value="<?= (int)$tp['id'] ?>">
-                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);">🗑️</button>
+                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);" title="Elimina definitivamente questo argomento archiviato">🗑️ Elimina</button>
                 </form>
               </div>
             </div>
@@ -186,6 +194,57 @@ if (!$activeClassId) {
     <?php endif; ?>
   </div>
 </div>
+
+<!-- Sezione Argomenti Archiviati in fondo (Accordion Chiuso di Default) -->
+<?php if (!empty($archivedTopics)): ?>
+  <details class="card accordion-card" style="margin-top: 24px;">
+    <summary class="card-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="accordion-icon">▶</span>
+        <h2 class="card-title" style="margin: 0;">📁 Argomenti & Istanze Archiviate</h2>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="badge badge-secondary"><?= count($archivedTopics) ?> archiviati</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">(clicca per visualizzare)</span>
+      </div>
+    </summary>
+    <div class="card-body">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <?php foreach ($archivedTopics as $tp): ?>
+          <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; background: var(--bg-surface-alt); opacity: 0.88;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                  <span class="badge badge-secondary" style="font-size: 0.7rem;"><?= Helper::e($tp['category']) ?></span>
+                  <span class="badge badge-secondary" style="font-size: 0.7rem;">Archiviato</span>
+                  <small style="color: var(--text-muted); font-size: 0.75rem;">del <?= Helper::formatDate($tp['created_at']) ?></small>
+                </div>
+                <h4 style="margin: 0; font-size: 0.98rem;"><?= Helper::e($tp['title']) ?></h4>
+                <?php if (!empty($tp['outcome_notes'])): ?>
+                  <div style="margin-top: 6px; font-size: 0.82rem; color: var(--text-secondary);">
+                    <strong>Esito:</strong> <?= Helper::e($tp['outcome_notes']) ?>
+                  </div>
+                <?php endif; ?>
+              </div>
+
+              <div style="display: flex; gap: 6px;">
+                <button class="btn btn-sm btn-secondary" onclick="openUpdateTopicModal(<?= (int)$tp['id'] ?>, '<?= Helper::e(addslashes($tp['title'])) ?>', '<?= $tp['status'] ?>', '<?= Helper::e(addslashes($tp['outcome_notes'] ?? '')) ?>')">
+                  ✏️ Modifica
+                </button>
+                <form method="POST" action="consigli.php" onsubmit="return confirm('Vuoi eliminare definitivamente questa voce archiviata?');" style="display: inline;">
+                  <?= Helper::csrfField() ?>
+                  <input type="hidden" name="action" value="delete_topic">
+                  <input type="hidden" name="topic_id" value="<?= (int)$tp['id'] ?>">
+                  <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--danger);" title="Elimina definitivamente questo argomento archiviato">🗑️ Elimina</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </details>
+<?php endif; ?>
 
 <!-- Modal Aggiungi Argomento -->
 <div class="modal-backdrop" id="modalAddTopic">

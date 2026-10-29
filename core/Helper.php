@@ -521,4 +521,35 @@ class Helper
         }
         return "{$diff->y} anni";
     }
+
+    /**
+     * Restituisce il nome in italiano del mese specificato (1-12)
+     */
+    public static function monthName(int|string|null $month): string
+    {
+        $m = (int)$month;
+        $months = [
+            1 => 'Gennaio',
+            2 => 'Febbraio',
+            3 => 'Marzo',
+            4 => 'Aprile',
+            5 => 'Maggio',
+            6 => 'Giugno',
+            7 => 'Luglio',
+            8 => 'Agosto',
+            9 => 'Settembre',
+            10 => 'Ottobre',
+            11 => 'Novembre',
+            12 => 'Dicembre'
+        ];
+        return $months[$m] ?? '';
+    }
+
+    /**
+     * Alias per formattazione nome del mese
+     */
+    public static function formatMonthName(int|string|null $month): string
+    {
+        return self::monthName($month);
+    }
 }

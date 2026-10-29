@@ -4,6 +4,29 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.10.0] - 2026-10-29
+### Aggiunto
+- **Ottimizzazione Mobile & Layout a Schede Verticali (Zero Scorrimento Orizzontale)**:
+  - Eliminate le tabelle a scorrimento orizzontale su smartphone e schermi ridotti (< 768px), sostituite da layout a schede reattive verticali:
+    - **Collaboratori (`utenti.php`)**: schede con avatar, ruolo, classi assegnate, stato e azioni rapide con apertura modale di modifica (`openEditUserModal`).
+    - **Stati Pagamenti Quote (`cassa.php`)**: schede alunni con stato, importi richiesti vs versati, metodo, data e pulsante diretto per modale (`openEditPaymentModal`).
+    - **Registro Entrate & Uscite Cassa (`cassa.php`)**: schede contabili con importo in evidenza verde/rosso, categoria, note, scontrino e cancellazione rapida.
+    - **Anagrafica Alunni (`alunni.php`)**: schede studente con età, note/allergie, rubrica genitori con contatti diretti (WhatsApp, chiamata, mail) e modale aggiunta genitore.
+    - **Eventi Passati (`calendario.php`)**: schede compatte per lo storico eventi.
+  - Ricerca istantanea `data-filter-table` sincronizzata per filtrare simultaneamente sia le righe delle tabelle desktop sia le schede mobile.
+- **Profilo Utente & Tasto Esci con Icona nel Burger Menu**:
+  - Spostati nome utente e disconnessione dalla barra superiore nel drawer a comparsa laterale, con pulsante di logout basato su icona grafica SVG.
+- **Nuova Icona Squircle per la Barra del Titolo**:
+  - Introdotto asset `icon-squircle.svg` e relative varianti raster con bordi arrotondati conformi allo standard Squircle e angoli trasparenti.
+
+### Modificato
+- **Compressione Densità Interfaccia Mobile**:
+  - Ridotti margini, padding di `.main-content`, testate pagina e padding interno delle card per massimizzare lo spazio utile su smartphone.
+- **Barra di Navigazione Inferiore (Bottom Bar)**:
+  - Rimosso il pulsante "Altro", bilanciando la barra sui 4 pulsanti principali: Home, Alunni, Cassa e WhatsApp.
+- Aggiornato Service Worker PWA (`rappresentor-cache-v0.10.0`).
+- Aggiornata la documentazione in `README.md` e la versione applicativa globale a `0.10.0`.
+
 ## [0.9.0] - 2026-10-29
 ### Aggiunto
 - **Nuovo Set Ufficiale Icone per WebApp e PWA**:

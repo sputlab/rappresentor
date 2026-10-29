@@ -128,23 +128,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $consent = isset($_POST['consent_whatsapp']) ? 1 : 0;
 
         if (empty($firstName) || empty($lastName) || $studentId <= 0) {
-            Helper::setFlash('danger', 'Dati genitore incompleti.');
+            Helper::setFlash('danger', 'Dati contatto incompleti.');
         } else {
-            $stmt = $db->prepare("INSERT INTO rappresentor_guardians (student_id, first_name, last_name, relation, phone, email, consent_whatsapp) 
-                VALUES (:sid, :fn, :ln, :rel, :ph, :em, :con)");
+            // Verifica che l'alunno appartenga alla classe attiva
+            $chk = $db->prepare("SELECT id FROM rappresentor_students WHERE id = :sid AND class_id = :cid");
+            $chk->execute(['sid' => $studentId, 'cid' => $activeClassId]);
+            if (!$chk->fetch()) {
+                Helper::setFlash('danger', 'Alunno non trovato nella classe attiva.');
+            } else {
+                $stmt = $db->prepare("INSERT INTO rappresentor_guardians (student_id, first_name, last_name, relation, phone, email, consent_whatsapp) 
+                    VALUES (:sid, :fn, :ln, :rel, :ph, :em, :con)");
+                $stmt->execute([
+                    'sid' => $studentId,
+                    'fn' => $firstName,
+                    'ln' => $lastName,
+                    'rel' => $relation,
+                    'ph' => $phone,
+                    'em' => $email,
+                    'con' => $consent
+                ]);
+                Helper::setFlash('success', 'Contatto famiglia aggiunto con successo!');
+            }
+            header('Location: alunni.php');
+            exit;
+        }
+    }
+
+    if ($activeClassId && $_POST['action'] === 'edit_guardian') {
+        $guardianId = (int)($_POST['guardian_id'] ?? 0);
+        $firstName = trim($_POST['first_name'] ?? '');
+        $lastName = trim($_POST['last_name'] ?? '');
+        $relation = trim($_POST['relation'] ?? 'madre');
+        $phone = trim($_POST['phone'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $consent = isset($_POST['consent_whatsapp']) ? 1 : 0;
+
+        if (empty($firstName) || empty($lastName) || $guardianId <= 0) {
+            Helper::setFlash('danger', 'Dati contatto incompleti. Nome e cognome sono obbligatori.');
+        } else {
+            $stmt = $db->prepare("UPDATE rappresentor_guardians g 
+                JOIN rappresentor_students s ON g.student_id = s.id 
+                SET g.first_name = :fn, g.last_name = :ln, g.relation = :rel, g.phone = :ph, g.email = :em, g.consent_whatsapp = :con 
+                WHERE g.id = :gid AND s.class_id = :cid");
             $stmt->execute([
-                'sid' => $studentId,
                 'fn' => $firstName,
                 'ln' => $lastName,
                 'rel' => $relation,
                 'ph' => $phone,
                 'em' => $email,
-                'con' => $consent
+                'con' => $consent,
+                'gid' => $guardianId,
+                'cid' => $activeClassId
             ]);
-            Helper::setFlash('success', 'Contatto genitore aggiunto con successo!');
+            Helper::setFlash('success', 'Contatto famiglia modificato con successo!');
             header('Location: alunni.php');
             exit;
         }
+    }
+
+    if ($activeClassId && $_POST['action'] === 'delete_guardian') {
+        $guardianId = (int)($_POST['guardian_id'] ?? 0);
+        if ($guardianId > 0) {
+            $stmt = $db->prepare("DELETE g FROM rappresentor_guardians g 
+                JOIN rappresentor_students s ON g.student_id = s.id 
+                WHERE g.id = :gid AND s.class_id = :cid");
+            $stmt->execute(['gid' => $guardianId, 'cid' => $activeClassId]);
+            Helper::setFlash('info', 'Contatto famiglia rimosso con successo.');
+        }
+        header('Location: alunni.php');
+        exit;
     }
 
     if ($activeClassId && $_POST['action'] === 'edit_student') {
@@ -308,27 +360,50 @@ if (!$activeClassId) {
                 </td>
                 <td>
                   <?php if (empty($stuGuardians)): ?>
-                    <span style="color: var(--text-muted); font-size: 0.82rem;">Nessun genitore registrato</span>
+                    <span style="color: var(--text-muted); font-size: 0.82rem;">Nessun contatto registrato</span>
                   <?php else: ?>
-                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
                       <?php foreach ($stuGuardians as $g): ?>
-                        <div style="font-size: 0.85rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                          <strong><?= Helper::e($g['first_name']) ?> (<?= Helper::e($g['relation']) ?>):</strong>
-                          <?php if ($g['phone']): ?>
-                            <a href="tel:<?= Helper::e($g['phone']) ?>" style="color: var(--text-secondary);" title="Chiama">
-                              📞 <?= Helper::e($g['phone']) ?>
-                            </a>
-                            <?php if ($g['consent_whatsapp']): ?>
-                              <a href="<?= Helper::waLink($g['phone']) ?>" target="_blank" class="badge" style="background:#25D366; color:white;" title="Apri WhatsApp">
-                                WA
+                        <div style="font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 4px; border-bottom: 1px dashed var(--border-color);">
+                          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <strong><?= Helper::e(trim($g['first_name'] . ' ' . ($g['last_name'] ?? ''))) ?></strong>
+                            <span style="color: var(--text-muted); font-size: 0.78rem;">(<?= Helper::e(ucfirst($g['relation'])) ?>)</span>:
+                            <?php if ($g['phone']): ?>
+                              <a href="tel:<?= Helper::e($g['phone']) ?>" style="color: var(--text-secondary);" title="Chiama">
+                                📞 <?= Helper::e($g['phone']) ?>
+                              </a>
+                              <?php if ($g['consent_whatsapp']): ?>
+                                <a href="<?= Helper::waLink($g['phone']) ?>" target="_blank" class="badge" style="background:#25D366; color:white; font-size: 0.68rem; padding: 2px 5px;" title="Apri WhatsApp">
+                                  WA
+                                </a>
+                              <?php endif; ?>
+                            <?php endif; ?>
+                            <?php if ($g['email']): ?>
+                              <a href="mailto:<?= Helper::e($g['email']) ?>" style="color: var(--primary);" title="Invia Email">
+                                ✉️
                               </a>
                             <?php endif; ?>
-                          <?php endif; ?>
-                          <?php if ($g['email']): ?>
-                            <a href="mailto:<?= Helper::e($g['email']) ?>" style="color: var(--primary);" title="Invia Email">
-                              ✉️
-                            </a>
-                          <?php endif; ?>
+                          </div>
+                          <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                            <button type="button" class="btn btn-xs btn-secondary" onclick="openEditGuardianModal(<?= htmlspecialchars(json_encode([
+                                'id' => (int)$g['id'],
+                                'student_id' => (int)$g['student_id'],
+                                'first_name' => $g['first_name'],
+                                'last_name' => $g['last_name'],
+                                'relation' => $g['relation'],
+                                'phone' => $g['phone'] ?? '',
+                                'email' => $g['email'] ?? '',
+                                'consent_whatsapp' => (int)$g['consent_whatsapp']
+                            ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica contatto famiglia">
+                              ✏️
+                            </button>
+                            <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler eliminare questo contatto famiglia?');" style="display: inline; margin: 0;">
+                              <?= Helper::csrfField() ?>
+                              <input type="hidden" name="action" value="delete_guardian">
+                              <input type="hidden" name="guardian_id" value="<?= (int)$g['id'] ?>">
+                              <button type="submit" class="btn btn-xs btn-danger" title="Elimina contatto famiglia">🗑️</button>
+                            </form>
+                          </div>
                         </div>
                       <?php endforeach; ?>
                     </div>
@@ -336,8 +411,8 @@ if (!$activeClassId) {
                 </td>
                 <td style="text-align: right;">
                   <div style="display: inline-flex; gap: 6px;">
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi altro genitore">
-                      + Genitore
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi contatto famiglia">
+                      + Contatto
                     </button>
                     <button type="button" class="btn btn-sm btn-secondary" onclick="openEditStudentModal(<?= htmlspecialchars(json_encode([
                         'id' => (int)$stu['id'],
@@ -403,33 +478,52 @@ if (!$activeClassId) {
 
           <!-- Elenco Genitori & Contatti Diretti -->
           <div class="student-guardians-list">
-            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
-              Genitori & Contatti
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">
+              Contatti Famiglia
             </div>
             <?php if (empty($stuGuardians)): ?>
-              <span style="font-size: 0.78rem; color: var(--text-muted); font-style: italic;">Nessun genitore registrato</span>
+              <span style="font-size: 0.78rem; color: var(--text-muted); font-style: italic;">Nessun contatto registrato</span>
             <?php else: ?>
               <?php foreach ($stuGuardians as $g): ?>
-                <div style="font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
+                <div style="font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; padding: 4px 0; border-bottom: 1px dashed var(--border-color);">
                   <div>
-                    <strong><?= Helper::e($g['first_name']) ?></strong> <span style="font-size: 0.74rem; color: var(--text-secondary);">(<?= Helper::e($g['relation']) ?>)</span>
+                    <strong><?= Helper::e(trim($g['first_name'] . ' ' . ($g['last_name'] ?? ''))) ?></strong>
+                    <span style="font-size: 0.74rem; color: var(--text-secondary);">(<?= Helper::e(ucfirst($g['relation'])) ?>)</span>
                   </div>
-                  <div style="display: flex; align-items: center; gap: 6px;">
+                  <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
                     <?php if ($g['phone']): ?>
-                      <a href="tel:<?= Helper::e($g['phone']) ?>" class="badge badge-secondary" style="font-size: 0.72rem;" title="Chiama">
+                      <a href="tel:<?= Helper::e($g['phone']) ?>" class="badge badge-secondary" style="font-size: 0.70rem; padding: 2px 6px;" title="Chiama">
                         📞 <?= Helper::e($g['phone']) ?>
                       </a>
                       <?php if ($g['consent_whatsapp']): ?>
-                        <a href="<?= Helper::waLink($g['phone']) ?>" target="_blank" class="badge" style="background:#25D366; color:white; font-size: 0.72rem;" title="Apri WhatsApp">
+                        <a href="<?= Helper::waLink($g['phone']) ?>" target="_blank" class="badge" style="background:#25D366; color:white; font-size: 0.70rem; padding: 2px 6px;" title="Apri WhatsApp">
                           WA
                         </a>
                       <?php endif; ?>
                     <?php endif; ?>
                     <?php if ($g['email']): ?>
-                      <a href="mailto:<?= Helper::e($g['email']) ?>" class="badge badge-secondary" style="font-size: 0.72rem;" title="Invia Email">
+                      <a href="mailto:<?= Helper::e($g['email']) ?>" class="badge badge-secondary" style="font-size: 0.70rem; padding: 2px 6px;" title="Invia Email">
                         ✉️
                       </a>
                     <?php endif; ?>
+                    <button type="button" class="btn btn-xs btn-secondary" onclick="openEditGuardianModal(<?= htmlspecialchars(json_encode([
+                        'id' => (int)$g['id'],
+                        'student_id' => (int)$g['student_id'],
+                        'first_name' => $g['first_name'],
+                        'last_name' => $g['last_name'],
+                        'relation' => $g['relation'],
+                        'phone' => $g['phone'] ?? '',
+                        'email' => $g['email'] ?? '',
+                        'consent_whatsapp' => (int)$g['consent_whatsapp']
+                    ]), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica contatto" style="margin-left: 2px;">
+                      ✏️
+                    </button>
+                    <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler eliminare questo contatto famiglia?');" style="display: inline; margin: 0;">
+                      <?= Helper::csrfField() ?>
+                      <input type="hidden" name="action" value="delete_guardian">
+                      <input type="hidden" name="guardian_id" value="<?= (int)$g['id'] ?>">
+                      <button type="submit" class="btn btn-xs btn-danger" title="Elimina contatto">🗑️</button>
+                    </form>
                   </div>
                 </div>
               <?php endforeach; ?>
@@ -438,8 +532,8 @@ if (!$activeClassId) {
 
           <!-- Azioni -->
           <div class="student-card-actions">
-            <button type="button" class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi altro genitore">
-              + Genitore
+            <button type="button" class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi contatto famiglia">
+              + Contatto
             </button>
             <button type="button" class="btn btn-sm btn-secondary" onclick="openEditStudentModal(<?= htmlspecialchars(json_encode([
                 'id' => (int)$stu['id'],
@@ -513,10 +607,12 @@ if (!$activeClassId) {
             <input type="text" id="guardian_first_name" name="guardian_first_name" class="form-control" placeholder="es. Laura Bianchi">
           </div>
           <div class="form-group">
-            <label for="guardian_relation">Ruolo</label>
+            <label for="guardian_relation">Ruolo / Parentela</label>
             <select id="guardian_relation" name="guardian_relation" class="form-control">
               <option value="madre">Madre</option>
               <option value="padre">Padre</option>
+              <option value="nonna">Nonna</option>
+              <option value="nonno">Nonno</option>
               <option value="tutore">Tutore legale</option>
               <option value="altro">Altro</option>
             </select>
@@ -626,10 +722,12 @@ if (!$activeClassId) {
 
         <div class="form-grid">
           <div class="form-group">
-            <label for="g_relation">Relazione</label>
+            <label for="g_relation">Relazione / Ruolo</label>
             <select id="g_relation" name="relation" class="form-control">
               <option value="madre">Madre</option>
               <option value="padre">Padre</option>
+              <option value="nonna">Nonna</option>
+              <option value="nonno">Nonno</option>
               <option value="tutore">Tutore legale</option>
               <option value="altro">Altro</option>
             </select>
@@ -656,6 +754,69 @@ if (!$activeClassId) {
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-modal-close>Annulla</button>
         <button type="submit" class="btn btn-primary">Salva Contatto</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Modifica Contatto Famiglia -->
+<div class="modal-backdrop" id="modalEditGuardian">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Modifica Contatto Famiglia</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form method="POST" action="alunni.php">
+      <?= Helper::csrfField() ?>
+      <input type="hidden" name="action" value="edit_guardian">
+      <input type="hidden" name="guardian_id" id="edit_guardian_id" value="">
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="edit_g_first_name">Nome *</label>
+            <input type="text" id="edit_g_first_name" name="first_name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="edit_g_last_name">Cognome *</label>
+            <input type="text" id="edit_g_last_name" name="last_name" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="edit_g_relation">Relazione / Ruolo</label>
+            <select id="edit_g_relation" name="relation" class="form-control">
+              <option value="madre">Madre</option>
+              <option value="padre">Padre</option>
+              <option value="nonna">Nonna</option>
+              <option value="nonno">Nonno</option>
+              <option value="tutore">Tutore legale</option>
+              <option value="altro">Altro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit_g_phone">Cellulare</label>
+            <input type="tel" id="edit_g_phone" name="phone" class="form-control" placeholder="3331234567">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit_g_email">Indirizzo Email</label>
+          <input type="email" id="edit_g_email" name="email" class="form-control" placeholder="email@dominio.it">
+        </div>
+
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+            <input type="checkbox" id="edit_g_consent_whatsapp" name="consent_whatsapp" value="1">
+            <span>Consenso inserimento chat WhatsApp di classe</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva Modifiche</button>
       </div>
     </form>
   </div>
@@ -689,6 +850,17 @@ function openAddGuardianModal(studentId, studentName) {
   document.getElementById('guardianStudentId').value = studentId;
   document.getElementById('guardianStudentName').innerText = studentName;
   openModal('modalAddGuardian');
+}
+
+function openEditGuardianModal(guardian) {
+  document.getElementById('edit_guardian_id').value = guardian.id;
+  document.getElementById('edit_g_first_name').value = guardian.first_name || '';
+  document.getElementById('edit_g_last_name').value = guardian.last_name || '';
+  document.getElementById('edit_g_relation').value = guardian.relation || 'madre';
+  document.getElementById('edit_g_phone').value = guardian.phone || '';
+  document.getElementById('edit_g_email').value = guardian.email || '';
+  document.getElementById('edit_g_consent_whatsapp').checked = (parseInt(guardian.consent_whatsapp, 10) === 1);
+  openModal('modalEditGuardian');
 }
 
 function openEditStudentModal(student) {

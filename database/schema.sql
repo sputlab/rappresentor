@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS `rappresentor_guardians` (
   `student_id` INT NOT NULL,
   `first_name` VARCHAR(100) NOT NULL,
   `last_name` VARCHAR(100) NOT NULL,
-  `relation` ENUM('madre', 'padre', 'tutore', 'altro') NOT NULL DEFAULT 'madre',
+  `relation` VARCHAR(50) NOT NULL DEFAULT 'madre' COMMENT 'madre, padre, nonna, nonno, tutore, altro',
   `phone` VARCHAR(50) NULL,
   `email` VARCHAR(150) NULL,
   `is_primary` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Contatto principale da chiamare',

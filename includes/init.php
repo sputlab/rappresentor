@@ -49,8 +49,11 @@ if (file_exists($configFile)) {
         });
 
         // Esegue le verifiche di migrazione schema/template solo una volta per sessione (evita overhead e lock multipli su DB ad ogni richiesta HTTP)
-        if (empty($_SESSION['_db_migrated_v011'])) {
+        if (empty($_SESSION['_db_migrated_v101'])) {
             try {
+                // Assicura colonna relation supporti nonna, nonno, ecc. (v1.0.1)
+                $db->exec("ALTER TABLE `rappresentor_guardians` MODIFY `relation` VARCHAR(50) NOT NULL DEFAULT 'madre'");
+
                 // Assicura esistenza tabella assegnazione classi (v0.5.0)
                 $db->exec("CREATE TABLE IF NOT EXISTS `rappresentor_user_classes` (
                     `user_id` INT NOT NULL,
@@ -86,7 +89,7 @@ if (file_exists($configFile)) {
                     SET `content` = '🎉 *Festa di Compleanno in arrivo!* 🎂\n\nFesteggiamo il compleanno di *{FESTEGGIATO}* ({CLASSE})!\n📅 Data: *{DATA_EVENTO}* ore *{ORA_EVENTO}*\n📍 Dove: *{LUOGO}*\n\n⚠️ *Attenzione allergie*: vi ricordiamo di rispettare le indicazioni alimentari condivise per la sicurezza di tutti i bambini.'
                     WHERE `title` = 'Compleanno / Festa di Classe' AND `is_default` = 1 AND `content` LIKE '%Vi preghiamo di confermare%'");
 
-                $_SESSION['_db_migrated_v011'] = true;
+                $_SESSION['_db_migrated_v101'] = true;
             } catch (\Throwable $e) {
                 // Silenzioso se la tabella non è ancora presente
             }

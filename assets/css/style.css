@@ -667,6 +667,14 @@ a:hover {
 .btn-whatsapp { background: var(--whatsapp); color: white; }
 .btn-whatsapp:hover, .btn-whatsapp:active { background: var(--whatsapp-dark); color: white; }
 
+.btn-xs {
+  padding: 3px 6px;
+  font-size: 0.74rem;
+  min-height: 24px;
+  line-height: 1.2;
+  border-radius: var(--radius-sm);
+}
+
 .btn-sm {
   padding: 6px 12px;
   font-size: 0.82rem;

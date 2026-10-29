@@ -1523,3 +1523,52 @@ textarea.form-control {
   flex-shrink: 0;
 }
 
+/* ==========================================================================
+   Accordion Collapsible Cards (per Risorse & Elementi Archiviati)
+   ========================================================================== */
+
+details.accordion-card {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+details.accordion-card > summary.card-header {
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  transition: background-color 0.15s ease;
+}
+
+details.accordion-card > summary.card-header:hover {
+  background-color: var(--bg-surface-alt);
+}
+
+details.accordion-card > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+details.accordion-card > summary::marker {
+  display: none !important;
+}
+
+details.accordion-card .accordion-icon {
+  display: inline-block;
+  transition: transform 0.2s ease;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+details.accordion-card[open] .accordion-icon {
+  transform: rotate(90deg);
+  color: var(--primary);
+}
+
+details.accordion-card[open] > summary.card-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+

@@ -45,7 +45,8 @@ class Database
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
-                $mysqlInitAttr               => "SET NAMES {$charset} COLLATE {$charset}_unicode_ci"
+                PDO::ATTR_TIMEOUT            => 5,
+                $mysqlInitAttr               => "SET NAMES {$charset} COLLATE {$charset}_unicode_ci, wait_timeout = 60"
             ];
 
             try {
@@ -57,6 +58,14 @@ class Database
         }
 
         return self::$instance;
+    }
+
+    /**
+     * Chiude esplicitamente la connessione PDO al database
+     */
+    public static function closeConnection(): void
+    {
+        self::$instance = null;
     }
 
     /**

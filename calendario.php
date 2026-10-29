@@ -365,13 +365,19 @@ if (!$activeClassId) {
     </div>
   </div>
 
-  <!-- 4. SEZIONE EVENTI PASSATI IN FONDO -->
+  <!-- 4. SEZIONE EVENTI PASSATI IN FONDO (Accordion Chiuso di Default) -->
   <?php if (!empty($pastEvents)): ?>
-    <div class="card" style="opacity: 0.85;">
-      <div class="card-header">
-        <h2 class="card-title">📜 Storico Eventi Passati</h2>
-        <span class="badge badge-secondary"><?= count($pastEvents) ?> trascorsi</span>
-      </div>
+    <details class="card accordion-card" style="opacity: 0.9; margin-top: 24px;">
+      <summary class="card-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="accordion-icon">▶</span>
+          <h2 class="card-title" style="margin: 0;">📜 Storico Eventi Passati</h2>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="badge badge-secondary"><?= count($pastEvents) ?> trascorsi</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">(clicca per visualizzare)</span>
+        </div>
+      </summary>
       <div class="card-body" style="padding: 0;">
         <div class="desktop-table-view">
           <div class="table-responsive">
@@ -413,7 +419,7 @@ if (!$activeClassId) {
           <?php endforeach; ?>
         </div>
       </div>
-    </div>
+    </details>
   <?php endif; ?>
 </div>
 

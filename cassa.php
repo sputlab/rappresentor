@@ -720,13 +720,19 @@ if (!$activeClassId) {
   </div>
 </div>
 
-<!-- Sezione Raccolte Quote Chiuse & Archiviate in fondo -->
+<!-- Sezione Raccolte Quote Chiuse & Archiviate in fondo (Accordion Chiuso di Default) -->
 <?php if (!empty($archivedCampaigns)): ?>
-  <div class="card" style="margin-top: 24px;">
-    <div class="card-header">
-      <h2 class="card-title">📁 Raccolte Quote Chiuse & Archiviate</h2>
-      <span class="badge badge-secondary"><?= count($archivedCampaigns) ?> archiviate</span>
-    </div>
+  <details class="card accordion-card" style="margin-top: 24px;">
+    <summary class="card-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="accordion-icon">▶</span>
+        <h2 class="card-title" style="margin: 0;">📁 Raccolte Quote Chiuse & Archiviate</h2>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="badge badge-secondary"><?= count($archivedCampaigns) ?> archiviate</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">(clicca per visualizzare)</span>
+      </div>
+    </summary>
     <div class="card-body">
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <?php foreach ($archivedCampaigns as $ac): 
@@ -770,7 +776,7 @@ if (!$activeClassId) {
         <?php endforeach; ?>
       </div>
     </div>
-  </div>
+  </details>
 <?php endif; ?>
 <div class="modal-backdrop" id="modalAddCampaign">
   <div class="modal">

@@ -4,6 +4,26 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.11.1] - 2026-10-29
+### Risolto
+- **Correzione Errore Fatale `Helper::monthName()`**:
+  - Implementati i metodi statici `monthName(int|string|null $month): string` e `formatMonthName()` in `core/Helper.php`, risolvendo il crash su `calendario.php:301` e la propagazione dell'errore nel compositore WhatsApp dei compleanni.
+- **Risoluzione Errore `SQLSTATE[HY000] [1040] Too many connections`**:
+  - Eliminata l'esecuzione ripetuta delle query DDL/migrazione ad ogni singola richiesta HTTP in `includes/init.php`, memorizzando l'avvenuta verifica in sessione (`_db_migrated_v011`).
+  - Introdotto in `core/Database.php` il metodo `closeConnection()` registrato come `register_shutdown_function` per chiudere esplicitamente e tempestivamente la connessione PDO al termine di ogni richiesta.
+  - Impostati `wait_timeout = 60` e `PDO::ATTR_TIMEOUT => 5` per prevenire il persistere di connessioni in stato idle/sleep nei pool MySQL di hosting condivisi (TopHost e simili).
+
+### Modificato
+- **Sezioni Archiviate con Accordion Collapsible Chiuso di Default**:
+  - Trasformate tutte le sezioni relative agli archiviati in componenti `<details class="card accordion-card">` con chiusura predefinita su tutte le pagine:
+    - `cassa.php`: Raccolte quote chiuse & archiviate.
+    - `classi.php`: Classi e sezioni archiviate.
+    - `consigli.php`: Argomenti e istanze archiviate.
+    - `calendario.php`: Storico eventi passati.
+  - Aggiunti stili CSS per transizione e rotazione icona indicatore `▶` a `▼` all'apertura dell'accordion.
+- Aggiornato Service Worker PWA (`rappresentor-cache-v0.11.1`).
+- Aggiornata la documentazione in `README.md` e la versione applicativa globale a `0.11.1`.
+
 ## [0.11.0] - 2026-10-29
 ### Aggiunto
 - **Sezioni Dedicate "Archiviati" a Fondo Pagina**:

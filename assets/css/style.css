@@ -1622,4 +1622,15 @@ details.accordion-card[open] > summary.card-header {
   border-bottom: 1px solid var(--border-color);
 }
 
+/* ==========================================================================
+   Flag & Traduzioni WhatsApp
+   ========================================================================== */
+
+.composer-lang-flag {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 

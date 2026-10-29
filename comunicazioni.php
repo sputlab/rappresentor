@@ -538,6 +538,56 @@ if (!$activeClassId) {
         </div>
       <?php endif; ?>
 
+      <!-- Pannello Traduzioni Multilingua con Flag -->
+      <div style="background: var(--bg-surface-alt); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+          <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+            <span>🌐</span> Traduzioni multilingua da includere nel messaggio:
+          </div>
+          <div id="translationStatus" style="font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+            <span>Solo Italiano</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.85rem;">
+          <label id="label_lang_en" style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; background: var(--bg-surface); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-sm); transition: all 0.2s;">
+            <input type="checkbox" class="composer-lang-flag" value="en" onchange="toggleLanguageTranslation('en', this.checked)">
+            <span>🇬🇧 Inglese</span>
+          </label>
+          <label id="label_lang_ro" style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; background: var(--bg-surface); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-sm); transition: all 0.2s;">
+            <input type="checkbox" class="composer-lang-flag" value="ro" onchange="toggleLanguageTranslation('ro', this.checked)">
+            <span>🇷🇴 Rumeno</span>
+          </label>
+          <label id="label_lang_hr" style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; background: var(--bg-surface); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-sm); transition: all 0.2s;">
+            <input type="checkbox" class="composer-lang-flag" value="hr" onchange="toggleLanguageTranslation('hr', this.checked)">
+            <span>🇭🇷 Croato</span>
+          </label>
+          <label id="label_lang_sq" style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; background: var(--bg-surface); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-sm); transition: all 0.2s;">
+            <input type="checkbox" class="composer-lang-flag" value="sq" onchange="toggleLanguageTranslation('sq', this.checked)">
+            <span>🇦🇱 Albanese</span>
+          </label>
+          <label id="label_lang_bn" style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; background: var(--bg-surface); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-sm); transition: all 0.2s;">
+            <input type="checkbox" class="composer-lang-flag" value="bn" onchange="toggleLanguageTranslation('bn', this.checked)">
+            <span>🇧🇩 Bengalese</span>
+          </label>
+          <label id="label_lang_tr" style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; background: var(--bg-surface); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-sm); transition: all 0.2s;">
+            <input type="checkbox" class="composer-lang-flag" value="tr" onchange="toggleLanguageTranslation('tr', this.checked)">
+            <span>🇹🇷 Turco</span>
+          </label>
+        </div>
+
+        <!-- Indicatore sequenza ordine attivo -->
+        <div id="activeLanguagesBadgeContainer" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-color); font-size: 0.78rem; color: var(--text-secondary); display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+          <div>
+            <span>Sequenza lingue nel messaggio: </span>
+            <span id="activeLanguagesBadgeList" style="font-weight: 700; color: var(--text-primary);">🇮🇹 Italiano</span>
+          </div>
+          <button type="button" class="btn btn-xs btn-secondary" onclick="refreshTranslations(true)" title="Aggiorna traduzioni per il testo corrente">
+            🔄 Aggiorna Traduzioni
+          </button>
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="composerText">Testo pronto per l'invio (modificabile prima di copiare):</label>
         <textarea id="composerText" class="form-control" rows="12" style="font-family: inherit; font-size: 0.92rem; line-height: 1.5;"><?= Helper::e($interpolatedContent) ?></textarea>
@@ -598,6 +648,244 @@ if (!$activeClassId) {
 <script>
 const activeClassName = <?= json_encode($className) ?>;
 const baseRawTemplateContent = <?= json_encode($selectedTemplate ? $selectedTemplate['content'] : '') ?>;
+const csrfToken = <?= json_encode(Helper::csrfToken()) ?>;
+
+const SUPPORTED_LANGUAGES = {
+  en: { flag: '🇬🇧', label: 'English (Inglese)', name: 'Inglese' },
+  ro: { flag: '🇷🇴', label: 'Română (Rumeno)', name: 'Rumeno' },
+  hr: { flag: '🇭🇷', label: 'Hrvatski (Croato)', name: 'Croato' },
+  sq: { flag: '🇦🇱', label: 'Shqip (Albanese)', name: 'Albanese' },
+  bn: { flag: '🇧🇩', label: 'বাংলা (Bengalese)', name: 'Bengalese' },
+  tr: { flag: '🇹🇷', label: 'Türkçe (Turco)', name: 'Turco' }
+};
+
+const TRANSLATION_SEPARATOR = '\n\n══════════════════════════\n';
+
+// Mantiene l'ordine cronologico esatto di selezione dei flag scelto dall'utente
+let activeLanguagesOrder = [];
+
+// Cache in memoria delle traduzioni per lingua per il testo italiano corrente
+let translationsCache = {};
+let lastTranslatedItalianText = '';
+let autoTranslateDebounceTimer = null;
+
+/**
+ * Estrae solo il testo italiano dal composer (tutto ciò che precede il primo separatore di traduzione)
+ */
+function getItalianBaseText() {
+  const composer = document.getElementById('composerText');
+  if (!composer) return '';
+  const val = composer.value;
+  const sepIdx = val.indexOf(TRANSLATION_SEPARATOR);
+  if (sepIdx !== -1) {
+    return val.substring(0, sepIdx).trim();
+  }
+  return val.trim();
+}
+
+/**
+ * Imposta il testo italiano di base preservando o riassemblando le traduzioni attive
+ */
+function setItalianBaseText(text) {
+  const composer = document.getElementById('composerText');
+  if (!composer) return;
+
+  if (activeLanguagesOrder.length === 0) {
+    composer.value = text;
+  } else {
+    assembleFullMessage(text);
+    triggerAutoTranslationUpdate();
+  }
+}
+
+/**
+ * Assembla il messaggio finale combinando il testo italiano con le traduzioni attive
+ * nell'ordine esatto con cui i flag sono stati attivati dall'utente.
+ */
+function assembleFullMessage(customItalianText = null) {
+  const italianText = (customItalianText !== null) ? customItalianText : getItalianBaseText();
+  let fullMessage = italianText;
+
+  for (const langCode of activeLanguagesOrder) {
+    if (translationsCache[langCode]) {
+      const config = SUPPORTED_LANGUAGES[langCode];
+      fullMessage += TRANSLATION_SEPARATOR + config.flag + ' *' + config.label + '*\n' + translationsCache[langCode];
+    }
+  }
+
+  const composer = document.getElementById('composerText');
+  if (composer) {
+    composer.value = fullMessage;
+  }
+}
+
+/**
+ * Gestisce l'attivazione o disattivazione del flag di una lingua
+ */
+async function toggleLanguageTranslation(langCode, isChecked) {
+  if (!SUPPORTED_LANGUAGES[langCode]) return;
+
+  // Evidenzia visivamente l'etichetta del flag
+  const labelEl = document.getElementById('label_lang_' + langCode);
+  if (labelEl) {
+    if (isChecked) {
+      labelEl.style.background = 'var(--primary-light)';
+      labelEl.style.borderColor = 'var(--primary)';
+      labelEl.style.fontWeight = '600';
+    } else {
+      labelEl.style.background = 'var(--bg-surface)';
+      labelEl.style.borderColor = 'var(--border-color)';
+      labelEl.style.fontWeight = 'normal';
+    }
+  }
+
+  if (isChecked) {
+    // Aggiungi in coda all'ordine cronologico
+    if (!activeLanguagesOrder.includes(langCode)) {
+      activeLanguagesOrder.push(langCode);
+    }
+  } else {
+    // Rimuovi dall'ordine
+    activeLanguagesOrder = activeLanguagesOrder.filter(code => code !== langCode);
+  }
+
+  updateLanguagesSequenceUI();
+
+  if (activeLanguagesOrder.length === 0) {
+    // Nessun flag attivo: il messaggio è esclusivamente in italiano
+    const italianText = getItalianBaseText();
+    document.getElementById('composerText').value = italianText;
+    updateStatus('Solo Italiano');
+    return;
+  }
+
+  // Se il flag è stato attivato e manca la traduzione per il testo italiano corrente, richiedila
+  const currentItalian = getItalianBaseText();
+  if (isChecked) {
+    if (!translationsCache[langCode] || lastTranslatedItalianText !== currentItalian) {
+      await fetchTranslationForLang(langCode, currentItalian);
+    }
+  }
+
+  assembleFullMessage();
+}
+
+/**
+ * Chiama l'endpoint server api/translate.php per tradurre il testo
+ */
+async function fetchTranslationForLang(langCode, italianText) {
+  if (!italianText) return;
+  const langConfig = SUPPORTED_LANGUAGES[langCode];
+  updateStatus(`Traduzione in corso (${langConfig.name})...`, true);
+
+  try {
+    const formData = new FormData();
+    formData.append('text', italianText);
+    formData.append('lang', langCode);
+    formData.append('csrf_token', csrfToken);
+
+    const res = await fetch('api/translate.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      translationsCache[langCode] = data.translatedText;
+      lastTranslatedItalianText = italianText;
+      updateStatus('Traduzioni pronte');
+    } else {
+      if (typeof showToast === 'function') {
+        showToast(data.message || 'Errore nella traduzione.', 'danger');
+      }
+      updateStatus('Errore traduzione');
+    }
+  } catch (err) {
+    console.error('Translation network error:', err);
+    updateStatus('Errore di connessione');
+  }
+}
+
+/**
+ * Aggiorna tutte le traduzioni attive (es. quando l'utente modifica i parametri o clicca il pulsante)
+ */
+async function refreshTranslations(force = false) {
+  if (activeLanguagesOrder.length === 0) return;
+
+  const currentItalian = getItalianBaseText();
+  if (!currentItalian) return;
+
+  if (!force && lastTranslatedItalianText === currentItalian) {
+    assembleFullMessage();
+    return;
+  }
+
+  updateStatus('Aggiornamento traduzioni...', true);
+
+  for (const langCode of activeLanguagesOrder) {
+    await fetchTranslationForLang(langCode, currentItalian);
+  }
+
+  assembleFullMessage();
+  updateStatus('Traduzioni aggiornate con successo!');
+}
+
+/**
+ * Avvia l'aggiornamento automatico con debounce per evitare chiamate ripetute mentre si digita
+ */
+function triggerAutoTranslationUpdate() {
+  if (activeLanguagesOrder.length === 0) return;
+  clearTimeout(autoTranslateDebounceTimer);
+  autoTranslateDebounceTimer = setTimeout(() => {
+    refreshTranslations(true);
+  }, 1000);
+}
+
+/**
+ * Aggiorna la barra informativa che mostra la sequenza esatta delle lingue
+ */
+function updateLanguagesSequenceUI() {
+  const container = document.getElementById('activeLanguagesBadgeContainer');
+  const listEl = document.getElementById('activeLanguagesBadgeList');
+  if (!container || !listEl) return;
+
+  if (activeLanguagesOrder.length === 0) {
+    container.style.display = 'none';
+  } else {
+    container.style.display = 'flex';
+    const items = ['🇮🇹 Italiano'];
+    activeLanguagesOrder.forEach(code => {
+      const cfg = SUPPORTED_LANGUAGES[code];
+      if (cfg) {
+        items.push(`${cfg.flag} ${cfg.name}`);
+      }
+    });
+    listEl.innerHTML = items.join(' &rarr; ');
+  }
+}
+
+/**
+ * Aggiorna la dicitura di stato del pannello traduzioni
+ */
+function updateStatus(text, isLoading = false) {
+  const statusEl = document.getElementById('translationStatus');
+  if (!statusEl) return;
+  if (isLoading) {
+    statusEl.innerHTML = `⏳ <span style="color: var(--primary); font-weight: 600;">${text}</span>`;
+  } else {
+    statusEl.innerText = text;
+  }
+}
+
+// Rileva modifiche manuali sul composerText per avvisare l'utente
+const composerEl = document.getElementById('composerText');
+if (composerEl) {
+  composerEl.addEventListener('input', () => {
+    if (activeLanguagesOrder.length > 0) {
+      updateStatus('Testo modificato (clicca 🔄 per ri-tradurre)');
+    }
+  });
+}
 
 // Aggiorna dinamicamente il testo delle quote/cassa in base ai metodi di pagamento selezionati
 function updateComposerPaymentMethods() {
@@ -624,10 +912,7 @@ function updateComposerPaymentMethods() {
     methodsBlock += "- Contattare i rappresentanti per concordare la modalità";
   }
 
-  const composer = document.getElementById('composerText');
-  if (!composer) return;
-  let text = composer.value;
-
+  let text = getItalianBaseText();
   if (/Modalità di versamento disponibili:[\s\S]*?(?=\n\n(?:Chi non avesse|Grazie|I Rappresentanti|$))/i.test(text)) {
     text = text.replace(/Modalità di versamento disponibili:[\s\S]*?(?=\n\n(?:Chi non avesse|Grazie|I Rappresentanti|$))/i, methodsBlock);
   } else if (/(\n\n(?:Chi non avesse|Grazie|I Rappresentanti))/i.test(text)) {
@@ -636,7 +921,7 @@ function updateComposerPaymentMethods() {
     text += '\n\n' + methodsBlock;
   }
 
-  composer.value = text;
+  setItalianBaseText(text);
 }
 
 // Applica selezione da menu a tendina compleanno/festa
@@ -665,7 +950,6 @@ function syncBirthdayText() {
   const luogo = document.getElementById('b_luogo') ? document.getElementById('b_luogo').value.trim() : 'Presso la sala feste';
 
   let text = baseRawTemplateContent;
-  // Assicura rimozione di qualsiasi residuo "Vi preghiamo di..."
   text = text.replace(/\n*Vi preghiamo di[^\n]*/gi, '');
 
   text = text.replace(/\{CLASSE\}/g, activeClassName);
@@ -674,10 +958,7 @@ function syncBirthdayText() {
   text = text.replace(/\{ORA_EVENTO\}/g, ora || '16:30');
   text = text.replace(/\{LUOGO\}/g, luogo || 'Presso la sala feste');
 
-  const composer = document.getElementById('composerText');
-  if (composer) {
-    composer.value = text;
-  }
+  setItalianBaseText(text);
 }
 
 // Applica selezione da menu a tendina gita scolastica
@@ -724,10 +1005,7 @@ function syncGitaText() {
   text = text.replace(/\{SCADENZA\}/g, scadenza);
   text = text.replace(/\{DESCRIZIONE_EVENTO\}/g, desc || "- Partenza dal piazzale della scuola con pullman GT\n- Visita guidata didattica e laboratori\n- Pausa pranzo al sacco\n- Rientro a scuola previsto nel pomeriggio");
 
-  const composer = document.getElementById('composerText');
-  if (composer) {
-    composer.value = text;
-  }
+  setItalianBaseText(text);
 }
 
 // Applica selezione da menu a tendina riunione / consiglio
@@ -766,10 +1044,7 @@ function syncRiunioneText() {
   text = text.replace(/\{LUOGO\}/g, luogo);
   text = text.replace(/\{DESCRIZIONE_EVENTO\}/g, desc || "- Andamento didattico della classe\n- Programmazione attività e progetti\n- Varie ed eventuali");
 
-  const composer = document.getElementById('composerText');
-  if (composer) {
-    composer.value = text;
-  }
+  setItalianBaseText(text);
 }
 </script>
 

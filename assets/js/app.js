@@ -213,6 +213,16 @@ function initQuickFilters() {
         const text = row.innerText.toLowerCase();
         row.style.display = text.includes(term) ? '' : 'none';
       });
+
+      // Filtra anche le schede mobile associate alla tabella (se presenti)
+      const mobileContainer = document.querySelector(`[data-filter-target="${targetTableId}"]`) || document.querySelector('.mobile-cards-view');
+      if (mobileContainer) {
+        const cards = mobileContainer.querySelectorAll('.mobile-filter-card');
+        cards.forEach((card) => {
+          const text = card.innerText.toLowerCase();
+          card.style.display = text.includes(term) ? '' : 'none';
+        });
+      }
     });
   });
 }

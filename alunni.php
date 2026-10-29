@@ -225,104 +225,195 @@ if (!$activeClassId) {
 
 <!-- Tabella Alunni -->
 <div class="card">
-  <div class="table-responsive">
-    <table class="table" id="studentsTable">
-      <thead>
-        <tr>
-          <th>Alunno</th>
-          <th>Età / Data Nascita</th>
-          <th>Allergie & Note</th>
-          <th>Genitori & Contatti</th>
-          <th style="text-align: right;">Azioni</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php if (empty($students)): ?>
+  <!-- Vista Tabella Desktop -->
+  <div class="desktop-table-view">
+    <div class="table-responsive">
+      <table class="table" id="studentsTable">
+        <thead>
           <tr>
-            <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
-              Nessun alunno presente in questa classe. Clicca su "+ Nuovo Alunno" per inserire il primo.
-            </td>
+            <th>Alunno</th>
+            <th>Età / Data Nascita</th>
+            <th>Allergie & Note</th>
+            <th>Genitori & Contatti</th>
+            <th style="text-align: right;">Azioni</th>
           </tr>
-        <?php else: ?>
-          <?php foreach ($students as $stu): 
-            $stuGuardians = $guardiansByStudent[$stu['id']] ?? [];
-            $age = Helper::calculateAge($stu['birth_date']);
-          ?>
+        </thead>
+        <tbody>
+          <?php if (empty($students)): ?>
             <tr>
-              <td>
-                <div style="font-weight: 700; font-size: 0.98rem;">
-                  <?= Helper::e($stu['last_name']) ?> <?= Helper::e($stu['first_name']) ?>
-                </div>
-              </td>
-              <td>
-                <?php if ($stu['birth_date']): ?>
-                  <div><?= Helper::formatDate($stu['birth_date']) ?></div>
-                  <small style="color: var(--text-muted);"><?= $age ?></small>
-                <?php else: ?>
-                  <span style="color: var(--text-muted);">-</span>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php if (!empty($stu['allergies'])): ?>
-                  <span class="badge badge-danger" title="Allergie o intolleranze">
-                    ⚠️ <?= Helper::e($stu['allergies']) ?>
-                  </span>
-                <?php endif; ?>
-                <?php if (!empty($stu['notes'])): ?>
-                  <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
-                    📝 <?= Helper::e($stu['notes']) ?>
-                  </div>
-                <?php endif; ?>
-                <?php if (empty($stu['allergies']) && empty($stu['notes'])): ?>
-                  <span style="color: var(--text-muted); font-size: 0.85rem;">Nessuna nota</span>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php if (empty($stuGuardians)): ?>
-                  <span style="color: var(--text-muted); font-size: 0.82rem;">Nessun genitore registrato</span>
-                <?php else: ?>
-                  <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <?php foreach ($stuGuardians as $g): ?>
-                      <div style="font-size: 0.85rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                        <strong><?= Helper::e($g['first_name']) ?> (<?= Helper::e($g['relation']) ?>):</strong>
-                        <?php if ($g['phone']): ?>
-                          <a href="tel:<?= Helper::e($g['phone']) ?>" style="color: var(--text-secondary);" title="Chiama">
-                            📞 <?= Helper::e($g['phone']) ?>
-                          </a>
-                          <?php if ($g['consent_whatsapp']): ?>
-                            <a href="<?= Helper::waLink($g['phone']) ?>" target="_blank" class="badge" style="background:#25D366; color:white;" title="Apri WhatsApp">
-                              WA
-                            </a>
-                          <?php endif; ?>
-                        <?php endif; ?>
-                        <?php if ($g['email']): ?>
-                          <a href="mailto:<?= Helper::e($g['email']) ?>" style="color: var(--primary);" title="Invia Email">
-                            ✉️
-                          </a>
-                        <?php endif; ?>
-                      </div>
-                    <?php endforeach; ?>
-                  </div>
-                <?php endif; ?>
-              </td>
-              <td style="text-align: right;">
-                <div style="display: inline-flex; gap: 6px;">
-                  <button class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi altro genitore">
-                    + Genitore
-                  </button>
-                  <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler rimuovere questo alunno dalla classe?');" style="display: inline;">
-                    <?= Helper::csrfField() ?>
-                    <input type="hidden" name="action" value="delete_student">
-                    <input type="hidden" name="student_id" value="<?= (int)$stu['id'] ?>">
-                    <button type="submit" class="btn btn-sm btn-danger" title="Elimina">🗑️</button>
-                  </form>
-                </div>
+              <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                Nessun alunno presente in questa classe. Clicca su "+ Nuovo Alunno" per inserire il primo.
               </td>
             </tr>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </tbody>
-    </table>
+          <?php else: ?>
+            <?php foreach ($students as $stu): 
+              $stuGuardians = $guardiansByStudent[$stu['id']] ?? [];
+              $age = Helper::calculateAge($stu['birth_date']);
+            ?>
+              <tr>
+                <td>
+                  <div style="font-weight: 700; font-size: 0.98rem;">
+                    <?= Helper::e($stu['last_name']) ?> <?= Helper::e($stu['first_name']) ?>
+                  </div>
+                </td>
+                <td>
+                  <?php if ($stu['birth_date']): ?>
+                    <div><?= Helper::formatDate($stu['birth_date']) ?></div>
+                    <small style="color: var(--text-muted);"><?= $age ?></small>
+                  <?php else: ?>
+                    <span style="color: var(--text-muted);">-</span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <?php if (!empty($stu['allergies'])): ?>
+                    <span class="badge badge-danger" title="Allergie o intolleranze">
+                      ⚠️ <?= Helper::e($stu['allergies']) ?>
+                    </span>
+                  <?php endif; ?>
+                  <?php if (!empty($stu['notes'])): ?>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
+                      📝 <?= Helper::e($stu['notes']) ?>
+                    </div>
+                  <?php endif; ?>
+                  <?php if (empty($stu['allergies']) && empty($stu['notes'])): ?>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Nessuna nota</span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <?php if (empty($stuGuardians)): ?>
+                    <span style="color: var(--text-muted); font-size: 0.82rem;">Nessun genitore registrato</span>
+                  <?php else: ?>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                      <?php foreach ($stuGuardians as $g): ?>
+                        <div style="font-size: 0.85rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                          <strong><?= Helper::e($g['first_name']) ?> (<?= Helper::e($g['relation']) ?>):</strong>
+                          <?php if ($g['phone']): ?>
+                            <a href="tel:<?= Helper::e($g['phone']) ?>" style="color: var(--text-secondary);" title="Chiama">
+                              📞 <?= Helper::e($g['phone']) ?>
+                            </a>
+                            <?php if ($g['consent_whatsapp']): ?>
+                              <a href="<?= Helper::waLink($g['phone']) ?>" target="_blank" class="badge" style="background:#25D366; color:white;" title="Apri WhatsApp">
+                                WA
+                              </a>
+                            <?php endif; ?>
+                          <?php endif; ?>
+                          <?php if ($g['email']): ?>
+                            <a href="mailto:<?= Helper::e($g['email']) ?>" style="color: var(--primary);" title="Invia Email">
+                              ✉️
+                            </a>
+                          <?php endif; ?>
+                        </div>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php endif; ?>
+                </td>
+                <td style="text-align: right;">
+                  <div style="display: inline-flex; gap: 6px;">
+                    <button class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi altro genitore">
+                      + Genitore
+                    </button>
+                    <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler rimuovere questo alunno dalla classe?');" style="display: inline;">
+                      <?= Helper::csrfField() ?>
+                      <input type="hidden" name="action" value="delete_student">
+                      <input type="hidden" name="student_id" value="<?= (int)$stu['id'] ?>">
+                      <button type="submit" class="btn btn-sm btn-danger" title="Elimina">🗑️</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Vista Schede Alunni Mobile (Zero Scorrimento Orizzontale) -->
+  <div class="mobile-cards-view" data-filter-target="studentsTable">
+    <?php if (empty($students)): ?>
+      <div style="text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 0.9rem;">
+        Nessun alunno presente in questa classe. Clicca su "+ Nuovo Alunno" per inserire il primo.
+      </div>
+    <?php else: ?>
+      <?php foreach ($students as $stu): 
+        $stuGuardians = $guardiansByStudent[$stu['id']] ?? [];
+        $age = Helper::calculateAge($stu['birth_date']);
+      ?>
+        <div class="student-mobile-card mobile-filter-card">
+          <div class="student-card-header">
+            <div>
+              <div class="student-card-title">
+                <?= Helper::e($stu['last_name']) ?> <?= Helper::e($stu['first_name']) ?>
+              </div>
+              <?php if ($stu['birth_date']): ?>
+                <div style="font-size: 0.76rem; color: var(--text-muted);">
+                  🎂 <?= Helper::formatDate($stu['birth_date']) ?> (<?= $age ?>)
+                </div>
+              <?php endif; ?>
+            </div>
+            <?php if (!empty($stu['allergies'])): ?>
+              <span class="badge badge-danger" title="Allergie o intolleranze" style="font-size: 0.72rem;">
+                ⚠️ <?= Helper::e($stu['allergies']) ?>
+              </span>
+            <?php endif; ?>
+          </div>
+
+          <?php if (!empty($stu['notes'])): ?>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); background: #fffbeb; padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid #fef3c7;">
+              📝 <?= Helper::e($stu['notes']) ?>
+            </div>
+          <?php endif; ?>
+
+          <!-- Elenco Genitori & Contatti Diretti -->
+          <div class="student-guardians-list">
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
+              Genitori & Contatti
+            </div>
+            <?php if (empty($stuGuardians)): ?>
+              <span style="font-size: 0.78rem; color: var(--text-muted); font-style: italic;">Nessun genitore registrato</span>
+            <?php else: ?>
+              <?php foreach ($stuGuardians as $g): ?>
+                <div style="font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
+                  <div>
+                    <strong><?= Helper::e($g['first_name']) ?></strong> <span style="font-size: 0.74rem; color: var(--text-secondary);">(<?= Helper::e($g['relation']) ?>)</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <?php if ($g['phone']): ?>
+                      <a href="tel:<?= Helper::e($g['phone']) ?>" class="badge badge-secondary" style="font-size: 0.72rem;" title="Chiama">
+                        📞 <?= Helper::e($g['phone']) ?>
+                      </a>
+                      <?php if ($g['consent_whatsapp']): ?>
+                        <a href="<?= Helper::waLink($g['phone']) ?>" target="_blank" class="badge" style="background:#25D366; color:white; font-size: 0.72rem;" title="Apri WhatsApp">
+                          WA
+                        </a>
+                      <?php endif; ?>
+                    <?php endif; ?>
+                    <?php if ($g['email']): ?>
+                      <a href="mailto:<?= Helper::e($g['email']) ?>" class="badge badge-secondary" style="font-size: 0.72rem;" title="Invia Email">
+                        ✉️
+                      </a>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
+
+          <!-- Azioni -->
+          <div class="student-card-actions">
+            <button class="btn btn-sm btn-secondary" onclick="openAddGuardianModal(<?= (int)$stu['id'] ?>, '<?= Helper::e(addslashes($stu['first_name'] . ' ' . $stu['last_name'])) ?>')" title="Aggiungi altro genitore">
+              + Genitore
+            </button>
+            <form method="POST" action="alunni.php" onsubmit="return confirm('Confermi di voler rimuovere questo alunno dalla classe?');" style="display: inline; margin: 0;">
+              <?= Helper::csrfField() ?>
+              <input type="hidden" name="action" value="delete_student">
+              <input type="hidden" name="student_id" value="<?= (int)$stu['id'] ?>">
+              <button type="submit" class="btn btn-sm btn-danger" title="Elimina">🗑️</button>
+            </form>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    <?php endif; ?>
   </div>
 </div>
 

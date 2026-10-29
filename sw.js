@@ -17,6 +17,7 @@ const PRECACHE_ASSETS = [
   './assets/icons/favicon-32x32.png',
   './assets/icons/favicon-16x16.png',
   './assets/icons/favicon.svg',
+  './assets/icons/icon-squircle.svg',
   './manifest.webmanifest',
   './offline.html'
 ];

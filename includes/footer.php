@@ -19,10 +19,6 @@
       <span class="bottom-nav-icon">💬</span>
       <span class="bottom-nav-label">WhatsApp</span>
     </a>
-    <button type="button" class="bottom-nav-item mobile-nav-toggle" aria-label="Altro menu">
-      <span class="bottom-nav-icon">☰</span>
-      <span class="bottom-nav-label">Altro</span>
-    </button>
   </nav>
 </div>
 

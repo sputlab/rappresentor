@@ -431,50 +431,94 @@ if (!$activeClassId) {
       </div>
 
       <!-- Tabella Pagamenti Alunno per Alunno -->
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Alunno</th>
-              <th>Stato Pagamento</th>
-              <th>Importo Versato</th>
-              <th>Modalità</th>
-              <th>Data Versamento</th>
-              <th>Note</th>
-              <th style="text-align: right;">Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($campaignPayments as $pay): ?>
+      <div class="desktop-table-view">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
               <tr>
-                <td>
-                  <strong><?= Helper::e($pay['last_name']) ?> <?= Helper::e($pay['first_name']) ?></strong>
-                </td>
-                <td>
-                  <?php if ($pay['status'] === 'pagato'): ?>
-                    <span class="badge badge-success">✅ Pagato</span>
-                  <?php elseif ($pay['status'] === 'parziale'): ?>
-                    <span class="badge badge-info">⚖️ Parziale</span>
-                  <?php elseif ($pay['status'] === 'esonerato'): ?>
-                    <span class="badge badge-secondary">⚪ Esonerato</span>
-                  <?php else: ?>
-                    <span class="badge badge-danger">⏳ Non pagato</span>
-                  <?php endif; ?>
-                </td>
-                <td><?= Helper::formatMoney($pay['amount_paid']) ?></td>
-                <td style="text-transform: capitalize;"><?= Helper::e($pay['payment_method']) ?></td>
-                <td><?= Helper::formatDate($pay['paid_at']) ?></td>
-                <td style="font-size: 0.82rem; color: var(--text-secondary);"><?= Helper::e($pay['notes'] ?? '-') ?></td>
-                <td style="text-align: right;">
-                  <button class="btn btn-sm <?= $pay['status'] === 'pagato' ? 'btn-secondary' : 'btn-success' ?>" 
-                          onclick="openEditPaymentModal(<?= (int)$pay['id'] ?>, '<?= Helper::e(addslashes($pay['last_name'] . ' ' . $pay['first_name'])) ?>', '<?= $pay['status'] ?>', <?= (float)$pay['amount_paid'] ?>, '<?= $pay['payment_method'] ?>', '<?= Helper::e(addslashes($pay['notes'] ?? '')) ?>', <?= (float)$selectedCampaign['quota_per_student'] ?>)">
-                    <?= $pay['status'] === 'pagato' ? 'Modifica' : '✓ Segna Pagato' ?>
-                  </button>
-                </td>
+                <th>Alunno</th>
+                <th>Stato Pagamento</th>
+                <th>Importo Versato</th>
+                <th>Modalità</th>
+                <th>Data Versamento</th>
+                <th>Note</th>
+                <th style="text-align: right;">Azioni</th>
               </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <?php foreach ($campaignPayments as $pay): ?>
+                <tr>
+                  <td>
+                    <strong><?= Helper::e($pay['last_name']) ?> <?= Helper::e($pay['first_name']) ?></strong>
+                  </td>
+                  <td>
+                    <?php if ($pay['status'] === 'pagato'): ?>
+                      <span class="badge badge-success">✅ Pagato</span>
+                    <?php elseif ($pay['status'] === 'parziale'): ?>
+                      <span class="badge badge-info">⚖️ Parziale</span>
+                    <?php elseif ($pay['status'] === 'esonerato'): ?>
+                      <span class="badge badge-secondary">⚪ Esonerato</span>
+                    <?php else: ?>
+                      <span class="badge badge-danger">⏳ Non pagato</span>
+                    <?php endif; ?>
+                  </td>
+                  <td><?= Helper::formatMoney($pay['amount_paid']) ?></td>
+                  <td style="text-transform: capitalize;"><?= Helper::e($pay['payment_method']) ?></td>
+                  <td><?= Helper::formatDate($pay['paid_at']) ?></td>
+                  <td style="font-size: 0.82rem; color: var(--text-secondary);"><?= Helper::e($pay['notes'] ?? '-') ?></td>
+                  <td style="text-align: right;">
+                    <button class="btn btn-sm <?= $pay['status'] === 'pagato' ? 'btn-secondary' : 'btn-success' ?>" 
+                            onclick="openEditPaymentModal(<?= (int)$pay['id'] ?>, '<?= Helper::e(addslashes($pay['last_name'] . ' ' . $pay['first_name'])) ?>', '<?= $pay['status'] ?>', <?= (float)$pay['amount_paid'] ?>, '<?= $pay['payment_method'] ?>', '<?= Helper::e(addslashes($pay['notes'] ?? '')) ?>', <?= (float)$selectedCampaign['quota_per_student'] ?>)">
+                      <?= $pay['status'] === 'pagato' ? 'Modifica' : '✓ Segna Pagato' ?>
+                    </button>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Vista Schede Pagamenti Mobile (Zero Scorrimento Orizzontale) -->
+      <div class="mobile-cards-view">
+        <?php foreach ($campaignPayments as $pay): ?>
+          <div class="payment-mobile-card">
+            <div class="payment-card-header">
+              <span class="payment-student-name"><?= Helper::e($pay['last_name']) ?> <?= Helper::e($pay['first_name']) ?></span>
+              <?php if ($pay['status'] === 'pagato'): ?>
+                <span class="badge badge-success">✅ Pagato</span>
+              <?php elseif ($pay['status'] === 'parziale'): ?>
+                <span class="badge badge-info">⚖️ Parziale</span>
+              <?php elseif ($pay['status'] === 'esonerato'): ?>
+                <span class="badge badge-secondary">⚪ Esonerato</span>
+              <?php else: ?>
+                <span class="badge badge-danger">⏳ Non pagato</span>
+              <?php endif; ?>
+            </div>
+
+            <div class="payment-card-body">
+              <div class="payment-meta">
+                <span>Richiesto: <strong><?= Helper::formatMoney($selectedCampaign['quota_per_student']) ?></strong></span>
+                <?php if ($pay['status'] === 'pagato' || $pay['status'] === 'parziale'): ?>
+                  <span><?= Helper::e(ucfirst($pay['payment_method'] ?: 'Contanti')) ?> • <?= Helper::formatDate($pay['paid_at']) ?></span>
+                <?php endif; ?>
+              </div>
+              <div class="payment-amount" style="color: <?= ($pay['status'] === 'pagato') ? 'var(--success-text)' : (($pay['status'] === 'parziale') ? 'var(--primary)' : 'var(--text-secondary)') ?>;">
+                Versato: <?= Helper::formatMoney($pay['amount_paid']) ?>
+              </div>
+            </div>
+
+            <div class="payment-card-footer">
+              <div class="payment-notes">
+                <?= !empty($pay['notes']) ? '📝 ' . Helper::e($pay['notes']) : '<span style="color:var(--text-muted); font-size:0.75rem;">Nessuna nota</span>' ?>
+              </div>
+              <button class="btn btn-sm <?= $pay['status'] === 'pagato' ? 'btn-secondary' : 'btn-success' ?>" 
+                      onclick="openEditPaymentModal(<?= (int)$pay['id'] ?>, '<?= Helper::e(addslashes($pay['last_name'] . ' ' . $pay['first_name'])) ?>', '<?= $pay['status'] ?>', <?= (float)$pay['amount_paid'] ?>, '<?= $pay['payment_method'] ?>', '<?= Helper::e(addslashes($pay['notes'] ?? '')) ?>', <?= (float)$selectedCampaign['quota_per_student'] ?>)">
+                <?= $pay['status'] === 'pagato' ? '✏️ Modifica' : '✓ Segna Pagato' ?>
+              </button>
+            </div>
+          </div>
+        <?php endforeach; ?>
       </div>
     <?php endif; ?>
   </div>
@@ -491,62 +535,111 @@ if (!$activeClassId) {
     <span>I versamenti quote degli alunni confluiscono <strong>automaticamente</strong> nel Totale Entrate e Saldo Cassa. Qui puoi registrare e consultare i movimenti manuali della classe (scontrini spese, acquisti o entrate straordinarie).</span>
   </div>
   <div class="card-body" style="padding: 0;">
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Tipo</th>
-            <th>Categoria</th>
-            <th>Descrizione & Note</th>
-            <th>Scontrino / Riferimento</th>
-            <th style="text-align: right;">Importo</th>
-            <th style="text-align: right; width: 60px;">Azione</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if (empty($transactions)): ?>
+    <!-- Vista Tabella Desktop -->
+    <div class="desktop-table-view">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
             <tr>
-              <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-muted);">
-                Nessun movimento manuale registrato. Clicca su "+ Registra Movimento" per inserire un'uscita (es. spesa) o un'entrata straordinaria.
-              </td>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Categoria</th>
+              <th>Descrizione & Note</th>
+              <th>Scontrino / Riferimento</th>
+              <th style="text-align: right;">Importo</th>
+              <th style="text-align: right; width: 60px;">Azione</th>
             </tr>
-          <?php else: ?>
-            <?php foreach ($transactions as $t): 
-              $isEntrata = $t['type'] === 'entrata';
-            ?>
+          </thead>
+          <tbody>
+            <?php if (empty($transactions)): ?>
               <tr>
-                <td><?= Helper::formatDate($t['transaction_date']) ?></td>
-                <td>
-                  <span class="badge <?= $isEntrata ? 'badge-success' : 'badge-danger' ?>">
-                    <?= $isEntrata ? '⬇ Entrata' : '⬆ Uscita' ?>
-                  </span>
-                </td>
-                <td><strong><?= Helper::e($t['category']) ?></strong></td>
-                <td><?= Helper::e($t['description']) ?></td>
-                <td>
-                  <?php if (!empty($t['receipt_ref'])): ?>
-                    <span class="badge badge-secondary">🧾 <?= Helper::e($t['receipt_ref']) ?></span>
-                  <?php else: ?>
-                    <span style="color: var(--text-muted); font-size: 0.8rem;">-</span>
-                  <?php endif; ?>
-                </td>
-                <td style="text-align: right; font-weight: 700; color: <?= $isEntrata ? 'var(--success-text)' : 'var(--danger-text)' ?>;">
-                  <?= $isEntrata ? '+' : '-' ?> <?= Helper::formatMoney($t['amount']) ?>
-                </td>
-                <td style="text-align: right;">
-                  <form method="POST" action="cassa.php" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questo movimento dal registro cassa?');">
-                    <?= Helper::csrfField() ?>
-                    <input type="hidden" name="action" value="delete_transaction">
-                    <input type="hidden" name="transaction_id" value="<?= (int)$t['id'] ?>">
-                    <button type="submit" class="btn btn-sm btn-secondary" style="padding: 2px 6px; font-size: 0.75rem; color: var(--danger);" title="Elimina movimento">🗑️</button>
-                  </form>
+                <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                  Nessun movimento manuale registrato. Clicca su "+ Registra Movimento" per inserire un'uscita (es. spesa) o un'entrata straordinaria.
                 </td>
               </tr>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </tbody>
-      </table>
+            <?php else: ?>
+              <?php foreach ($transactions as $t): 
+                $isEntrata = $t['type'] === 'entrata';
+              ?>
+                <tr>
+                  <td><?= Helper::formatDate($t['transaction_date']) ?></td>
+                  <td>
+                    <span class="badge <?= $isEntrata ? 'badge-success' : 'badge-danger' ?>">
+                      <?= $isEntrata ? '⬇ Entrata' : '⬆ Uscita' ?>
+                    </span>
+                  </td>
+                  <td><strong><?= Helper::e($t['category']) ?></strong></td>
+                  <td><?= Helper::e($t['description']) ?></td>
+                  <td>
+                    <?php if (!empty($t['receipt_ref'])): ?>
+                      <span class="badge badge-secondary">🧾 <?= Helper::e($t['receipt_ref']) ?></span>
+                    <?php else: ?>
+                      <span style="color: var(--text-muted); font-size: 0.8rem;">-</span>
+                    <?php endif; ?>
+                  </td>
+                  <td style="text-align: right; font-weight: 700; color: <?= $isEntrata ? 'var(--success-text)' : 'var(--danger-text)' ?>;">
+                    <?= $isEntrata ? '+' : '-' ?> <?= Helper::formatMoney($t['amount']) ?>
+                  </td>
+                  <td style="text-align: right;">
+                    <form method="POST" action="cassa.php" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler eliminare questo movimento dal registro cassa?');">
+                      <?= Helper::csrfField() ?>
+                      <input type="hidden" name="action" value="delete_transaction">
+                      <input type="hidden" name="transaction_id" value="<?= (int)$t['id'] ?>">
+                      <button type="submit" class="btn btn-sm btn-secondary" style="padding: 2px 6px; font-size: 0.75rem; color: var(--danger);" title="Elimina movimento">🗑️</button>
+                    </form>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vista Schede Movimenti Mobile (Zero Scorrimento Orizzontale) -->
+    <div class="mobile-cards-view">
+      <?php if (empty($transactions)): ?>
+        <div style="text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 0.85rem;">
+          Nessun movimento manuale registrato. Clicca su "+ Registra Movimento" per inserire un'uscita o un'entrata.
+        </div>
+      <?php else: ?>
+        <?php foreach ($transactions as $t): 
+          $isEntrata = $t['type'] === 'entrata';
+        ?>
+          <div class="tx-mobile-card">
+            <div class="tx-card-header">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span class="badge <?= $isEntrata ? 'badge-success' : 'badge-danger' ?>" style="font-size: 0.74rem;">
+                  <?= $isEntrata ? '⬇ Entrata' : '⬆ Uscita' ?>
+                </span>
+                <span class="tx-category-badge"><?= Helper::e($t['category']) ?></span>
+              </div>
+              <div class="tx-amount <?= $isEntrata ? 'entrata' : 'uscita' ?>">
+                <?= $isEntrata ? '+' : '-' ?> <?= Helper::formatMoney($t['amount']) ?>
+              </div>
+            </div>
+
+            <?php if (!empty($t['description'])): ?>
+              <div class="tx-card-desc"><?= Helper::e($t['description']) ?></div>
+            <?php endif; ?>
+
+            <div class="tx-card-footer">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span>📅 <?= Helper::formatDate($t['transaction_date']) ?></span>
+                <?php if (!empty($t['receipt_ref'])): ?>
+                  <span class="badge badge-secondary" style="font-size: 0.7rem;">🧾 <?= Helper::e($t['receipt_ref']) ?></span>
+                <?php endif; ?>
+              </div>
+              <form method="POST" action="cassa.php" style="display: inline; margin: 0;" onsubmit="return confirm('Sei sicuro di voler eliminare questo movimento dal registro cassa?');">
+                <?= Helper::csrfField() ?>
+                <input type="hidden" name="action" value="delete_transaction">
+                <input type="hidden" name="transaction_id" value="<?= (int)$t['id'] ?>">
+                <button type="submit" class="btn btn-sm btn-secondary" style="padding: 3px 8px; font-size: 0.76rem; color: var(--danger);" title="Elimina movimento">🗑️ Elimina</button>
+              </form>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </div>
   </div>
 </div>

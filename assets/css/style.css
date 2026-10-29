@@ -128,6 +128,11 @@ a:hover {
   color: var(--primary);
 }
 
+.brand img {
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
 .brand-icon {
   font-size: 1.35rem;
 }
@@ -202,20 +207,20 @@ a:hover {
 
 .main-content {
   flex: 1;
-  padding: 16px 14px calc(var(--bottom-nav-height) + 20px + env(safe-area-inset-bottom)) 14px;
+  padding: 12px 10px calc(var(--bottom-nav-height) + 14px + env(safe-area-inset-bottom)) 10px;
   width: 100%;
 }
 
 .page-header {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .page-title {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.22rem;
   font-weight: 700;
   color: var(--text-primary);
   display: flex;
@@ -225,9 +230,9 @@ a:hover {
 }
 
 .page-subtitle {
-  margin: 2px 0 0;
+  margin: 1px 0 0;
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 /* ==========================================================================
@@ -384,6 +389,66 @@ a:hover {
   color: var(--primary-dark);
 }
 
+/* Profilo Utente & Logout Rapido con Icona nel Burger Menu */
+.sidebar-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin: 0 14px 12px;
+  background: var(--bg-surface-alt);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.sidebar-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sidebar-user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-user-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-role {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-logout-btn:hover {
+  background: #fca5a5;
+  color: #b91c1c;
+}
+
 /* Selettore Classe all'interno del Burger Menu su Mobile */
 .sidebar-class-picker {
   padding: 0 16px 14px;
@@ -486,58 +551,58 @@ a:hover {
 
 .card {
   background: var(--bg-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 18px;
+  margin-bottom: 12px;
   overflow: hidden;
 }
 
 .card-header {
-  padding: 14px 16px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   background: #ffffff;
 }
 
 .card-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-weight: 600;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .card-body {
-  padding: 16px;
+  padding: 12px;
 }
 
 /* Stat Box / Widget */
 .stat-card {
   background: var(--bg-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
-  padding: 16px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   box-shadow: var(--shadow-sm);
 }
 
 .stat-icon {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   flex-shrink: 0;
 }
 
@@ -655,6 +720,241 @@ a:hover {
 
 .table tr:hover td {
   background-color: #f8fafc;
+}
+
+/* ==========================================================================
+   Mobile Card Views (Sostituzione Tabelle a Scorrimento Orizzontale)
+   ========================================================================== */
+
+.desktop-table-view {
+  display: block;
+}
+
+.mobile-cards-view {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .desktop-table-view {
+    display: none !important;
+  }
+
+  .mobile-cards-view {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+  }
+}
+
+/* Card Pagamenti Mobile */
+.payment-mobile-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.payment-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.payment-student-name {
+  font-weight: 700;
+  font-size: 0.94rem;
+  color: var(--text-primary);
+}
+
+.payment-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  background: var(--bg-surface-alt);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.payment-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.payment-amount {
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--text-primary);
+}
+
+.payment-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.payment-notes {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+
+/* Card Registro Entrate e Uscite Mobile */
+.tx-mobile-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.tx-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tx-category-badge {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+}
+
+.tx-amount {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.tx-amount.entrata {
+  color: var(--success-text);
+}
+
+.tx-amount.uscita {
+  color: var(--danger-text);
+}
+
+.tx-card-desc {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.tx-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  border-top: 1px dashed var(--border-color);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+/* Card Collaboratori Mobile */
+.user-mobile-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.user-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-card-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.user-card-classes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.user-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 8px;
+}
+
+/* Card Alunni Mobile */
+.student-mobile-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.student-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-card-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.student-guardians-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-surface-alt);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.student-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 8px;
 }
 
 /* ==========================================================================

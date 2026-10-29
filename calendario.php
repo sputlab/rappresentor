@@ -170,27 +170,44 @@ if (!$activeClassId) {
           <h2 class="card-title">📜 Eventi Passati</h2>
         </div>
         <div class="card-body" style="padding: 0;">
-          <div class="table-responsive">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Tipo</th>
-                  <th>Titolo</th>
-                  <th>Luogo</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($pastEvents as $pe): ?>
-                  <tr style="opacity: 0.75;">
-                    <td><?= Helper::formatDate($pe['event_date']) ?></td>
-                    <td><span class="badge badge-secondary"><?= Helper::e($pe['event_type']) ?></span></td>
-                    <td><strong><?= Helper::e($pe['title']) ?></strong></td>
-                    <td><?= Helper::e($pe['location'] ?? '-') ?></td>
+          <div class="desktop-table-view">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Titolo</th>
+                    <th>Luogo</th>
                   </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <?php foreach ($pastEvents as $pe): ?>
+                    <tr style="opacity: 0.75;">
+                      <td><?= Helper::formatDate($pe['event_date']) ?></td>
+                      <td><span class="badge badge-secondary"><?= Helper::e($pe['event_type']) ?></span></td>
+                      <td><strong><?= Helper::e($pe['title']) ?></strong></td>
+                      <td><?= Helper::e($pe['location'] ?? '-') ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mobile-cards-view">
+            <?php foreach ($pastEvents as $pe): ?>
+              <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 10px; opacity: 0.8; display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <strong><?= Helper::e($pe['title']) ?></strong>
+                  <span class="badge badge-secondary" style="font-size: 0.72rem;"><?= Helper::e($pe['event_type']) ?></span>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                  <span>📅 <?= Helper::formatDate($pe['event_date']) ?></span>
+                  <span>📍 <?= Helper::e($pe['location'] ?? 'Nessun luogo') ?></span>
+                </div>
+              </div>
+            <?php endforeach; ?>
           </div>
         </div>
       </div>

@@ -308,104 +308,197 @@ require_once __DIR__ . '/includes/header.php';
 <?php endif; ?>
 
 <div class="card">
-  <div class="table-responsive">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Utente</th>
-          <th>Email</th>
-          <th>Ruolo</th>
-          <th>Classi Gestite</th>
-          <th>Stato</th>
-          <th>Data Aggiunta</th>
-          <th style="text-align: right;">Azioni</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($users as $u): 
-          $isMe = (int)$u['id'] === $currentUserId;
-          $assignedClasses = $userClassesMap[$u['id']] ?? [];
-          $assignedIds = array_map(function($c) { return (int)$c['class_id']; }, $assignedClasses);
-        ?>
+  <!-- Vista Tabella Desktop -->
+  <div class="desktop-table-view">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
           <tr>
-            <td>
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.75rem;">
-                  <?= strtoupper(substr($u['name'], 0, 1)) ?>
-                </div>
-                <strong><?= Helper::e($u['name']) ?></strong>
-                <?php if ($isMe): ?>
-                  <span class="badge badge-primary">Tu</span>
-                <?php endif; ?>
-              </div>
-            </td>
-            <td><?= Helper::e($u['email']) ?></td>
-            <td>
-              <span class="badge <?= $u['role'] === 'admin' ? 'badge-primary' : ($u['role'] === 'rappresentante' ? 'badge-info' : 'badge-secondary') ?>">
-                <?= Helper::e(ucfirst($u['role'])) ?>
-              </span>
-            </td>
-            <td>
-              <?php if ($u['role'] === 'admin'): ?>
-                <span class="badge badge-info" title="L'amministratore supervisiona e gestisce tutte le sezioni">🏫 Tutte le Classi</span>
-              <?php elseif (!empty($assignedClasses)): ?>
-                <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 280px;">
-                  <?php foreach ($assignedClasses as $ac): 
-                    $typeInfo = Helper::schoolTypeDetails($ac['school_type']);
-                  ?>
-                    <span class="badge badge-secondary" style="font-size: 0.74rem;">
-                      <?= $typeInfo['icon'] ?> <?= Helper::e($ac['class_name']) ?>
-                    </span>
-                  <?php endforeach; ?>
-                </div>
-              <?php else: ?>
-                <span class="badge badge-secondary" style="opacity: 0.7; font-size: 0.75rem;">Nessuna classe assegnata</span>
-              <?php endif; ?>
-            </td>
-            <td>
-              <span class="badge <?= $u['is_active'] ? 'badge-success' : 'badge-danger' ?>">
-                <?= $u['is_active'] ? 'Attivo' : 'Disattivato' ?>
-              </span>
-            </td>
-            <td><?= Helper::formatDate($u['created_at']) ?></td>
-            <td style="text-align: right;">
-              <div style="display: inline-flex; gap: 6px; align-items: center; justify-content: flex-end;">
-                <button type="button" class="btn btn-sm btn-secondary" onclick="openEditUserModal(<?= htmlspecialchars(json_encode([
-                    'id' => (int)$u['id'],
-                    'name' => $u['name'],
-                    'email' => $u['email'],
-                    'role' => $u['role'],
-                    'is_active' => (int)$u['is_active'],
-                    'is_me' => $isMe,
-                    'assigned_class_ids' => $assignedIds
-                ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica dati e classi collaboratore">
-                  ✏️ Modifica
-                </button>
-
-                <?php if (!$isMe && ($isCurrentAdmin || $u['role'] === 'collaboratore')): ?>
-                  <form method="POST" action="utenti.php" style="display: inline;">
-                    <?= Helper::csrfField() ?>
-                    <input type="hidden" name="action" value="toggle_active">
-                    <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                    <input type="hidden" name="is_active" value="<?= $u['is_active'] ? '0' : '1' ?>">
-                    <button type="submit" class="btn btn-sm <?= $u['is_active'] ? 'btn-secondary' : 'btn-success' ?>" title="<?= $u['is_active'] ? 'Disattiva account' : 'Attiva account' ?>">
-                      <?= $u['is_active'] ? 'Disattiva' : 'Attiva' ?>
-                    </button>
-                  </form>
-
-                  <form method="POST" action="utenti.php" onsubmit="return confirm('Confermi l\'eliminazione definitiva di questo collaboratore?');" style="display: inline;">
-                    <?= Helper::csrfField() ?>
-                    <input type="hidden" name="action" value="delete_user">
-                    <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                    <button type="submit" class="btn btn-sm btn-danger" title="Elimina">🗑️</button>
-                  </form>
-                <?php endif; ?>
-              </div>
-            </td>
+            <th>Utente</th>
+            <th>Email</th>
+            <th>Ruolo</th>
+            <th>Classi Gestite</th>
+            <th>Stato</th>
+            <th>Data Aggiunta</th>
+            <th style="text-align: right;">Azioni</th>
           </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <?php foreach ($users as $u): 
+            $isMe = (int)$u['id'] === $currentUserId;
+            $assignedClasses = $userClassesMap[$u['id']] ?? [];
+            $assignedIds = array_map(function($c) { return (int)$c['class_id']; }, $assignedClasses);
+          ?>
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                    <?= strtoupper(substr($u['name'], 0, 1)) ?>
+                  </div>
+                  <strong><?= Helper::e($u['name']) ?></strong>
+                  <?php if ($isMe): ?>
+                    <span class="badge badge-primary">Tu</span>
+                  <?php endif; ?>
+                </div>
+              </td>
+              <td><?= Helper::e($u['email']) ?></td>
+              <td>
+                <span class="badge <?= $u['role'] === 'admin' ? 'badge-primary' : ($u['role'] === 'rappresentante' ? 'badge-info' : 'badge-secondary') ?>">
+                  <?= Helper::e(ucfirst($u['role'])) ?>
+                </span>
+              </td>
+              <td>
+                <?php if ($u['role'] === 'admin'): ?>
+                  <span class="badge badge-info" title="L'amministratore supervisiona e gestisce tutte le sezioni">🏫 Tutte le Classi</span>
+                <?php elseif (!empty($assignedClasses)): ?>
+                  <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 280px;">
+                    <?php foreach ($assignedClasses as $ac): 
+                      $typeInfo = Helper::schoolTypeDetails($ac['school_type']);
+                    ?>
+                      <span class="badge badge-secondary" style="font-size: 0.74rem;">
+                        <?= $typeInfo['icon'] ?> <?= Helper::e($ac['class_name']) ?>
+                      </span>
+                    <?php endforeach; ?>
+                  </div>
+                <?php else: ?>
+                  <span class="badge badge-secondary" style="opacity: 0.7; font-size: 0.75rem;">Nessuna classe assegnata</span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <span class="badge <?= $u['is_active'] ? 'badge-success' : 'badge-danger' ?>">
+                  <?= $u['is_active'] ? 'Attivo' : 'Disattivato' ?>
+                </span>
+              </td>
+              <td><?= Helper::formatDate($u['created_at']) ?></td>
+              <td style="text-align: right;">
+                <div style="display: inline-flex; gap: 6px; align-items: center; justify-content: flex-end;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="openEditUserModal(<?= htmlspecialchars(json_encode([
+                      'id' => (int)$u['id'],
+                      'name' => $u['name'],
+                      'email' => $u['email'],
+                      'role' => $u['role'],
+                      'is_active' => (int)$u['is_active'],
+                      'is_me' => $isMe,
+                      'assigned_class_ids' => $assignedIds
+                  ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica dati e classi collaboratore">
+                    ✏️ Modifica
+                  </button>
+
+                  <?php if (!$isMe && ($isCurrentAdmin || $u['role'] === 'collaboratore')): ?>
+                    <form method="POST" action="utenti.php" style="display: inline;">
+                      <?= Helper::csrfField() ?>
+                      <input type="hidden" name="action" value="toggle_active">
+                      <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                      <input type="hidden" name="is_active" value="<?= $u['is_active'] ? '0' : '1' ?>">
+                      <button type="submit" class="btn btn-sm <?= $u['is_active'] ? 'btn-secondary' : 'btn-success' ?>" title="<?= $u['is_active'] ? 'Disattiva account' : 'Attiva account' ?>">
+                        <?= $u['is_active'] ? 'Disattiva' : 'Attiva' ?>
+                      </button>
+                    </form>
+
+                    <form method="POST" action="utenti.php" onsubmit="return confirm('Confermi l\'eliminazione definitiva di questo collaboratore?');" style="display: inline;">
+                      <?= Helper::csrfField() ?>
+                      <input type="hidden" name="action" value="delete_user">
+                      <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                      <button type="submit" class="btn btn-sm btn-danger" title="Elimina">🗑️</button>
+                    </form>
+                  <?php endif; ?>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Vista Schede Mobile (Zero Scorrimento Orizzontale) -->
+  <div class="mobile-cards-view">
+    <?php foreach ($users as $u): 
+      $isMe = (int)$u['id'] === $currentUserId;
+      $assignedClasses = $userClassesMap[$u['id']] ?? [];
+      $assignedIds = array_map(function($c) { return (int)$c['class_id']; }, $assignedClasses);
+    ?>
+      <div class="user-mobile-card">
+        <div class="user-card-header">
+          <div class="user-card-profile">
+            <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.85rem;">
+              <?= strtoupper(substr($u['name'], 0, 1)) ?>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                <span><?= Helper::e($u['name']) ?></span>
+                <?php if ($isMe): ?>
+                  <span class="badge badge-primary" style="font-size: 0.68rem;">Tu</span>
+                <?php endif; ?>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-secondary);"><?= Helper::e($u['email']) ?></div>
+            </div>
+          </div>
+          <span class="badge <?= $u['role'] === 'admin' ? 'badge-primary' : ($u['role'] === 'rappresentante' ? 'badge-info' : 'badge-secondary') ?>">
+            <?= Helper::e(ucfirst($u['role'])) ?>
+          </span>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; color: var(--text-secondary);">
+          <span>Stato: <span class="badge <?= $u['is_active'] ? 'badge-success' : 'badge-danger' ?>" style="font-size: 0.72rem;"><?= $u['is_active'] ? 'Attivo' : 'Disattivato' ?></span></span>
+          <span>Dal: <?= Helper::formatDate($u['created_at']) ?></span>
+        </div>
+
+        <!-- Classi Assegnate -->
+        <div style="background: var(--bg-surface-alt); padding: 8px 10px; border-radius: var(--radius-sm);">
+          <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Classi Gestite</div>
+          <?php if ($u['role'] === 'admin'): ?>
+            <span class="badge badge-info" style="font-size: 0.75rem;">🏫 Tutte le Classi (Admin)</span>
+          <?php elseif (!empty($assignedClasses)): ?>
+            <div class="user-card-classes">
+              <?php foreach ($assignedClasses as $ac): 
+                $typeInfo = Helper::schoolTypeDetails($ac['school_type']);
+              ?>
+                <span class="badge badge-secondary" style="font-size: 0.72rem;">
+                  <?= $typeInfo['icon'] ?> <?= Helper::e($ac['class_name']) ?>
+                </span>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <span style="font-size: 0.78rem; color: var(--text-muted); font-style: italic;">Nessuna classe assegnata</span>
+          <?php endif; ?>
+        </div>
+
+        <!-- Azioni Record -->
+        <div class="user-card-actions">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="openEditUserModal(<?= htmlspecialchars(json_encode([
+              'id' => (int)$u['id'],
+              'name' => $u['name'],
+              'email' => $u['email'],
+              'role' => $u['role'],
+              'is_active' => (int)$u['is_active'],
+              'is_me' => $isMe,
+              'assigned_class_ids' => $assignedIds
+          ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>)" title="Modifica dati e classi collaboratore">
+            ✏️ Modifica
+          </button>
+
+          <?php if (!$isMe && ($isCurrentAdmin || $u['role'] === 'collaboratore')): ?>
+            <form method="POST" action="utenti.php" style="display: inline;">
+              <?= Helper::csrfField() ?>
+              <input type="hidden" name="action" value="toggle_active">
+              <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+              <input type="hidden" name="is_active" value="<?= $u['is_active'] ? '0' : '1' ?>">
+              <button type="submit" class="btn btn-sm <?= $u['is_active'] ? 'btn-secondary' : 'btn-success' ?>">
+                <?= $u['is_active'] ? 'Disattiva' : 'Attiva' ?>
+              </button>
+            </form>
+
+            <form method="POST" action="utenti.php" onsubmit="return confirm('Confermi l\'eliminazione definitiva di questo collaboratore?');" style="display: inline;">
+              <?= Helper::csrfField() ?>
+              <input type="hidden" name="action" value="delete_user">
+              <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+              <button type="submit" class="btn btn-sm btn-danger" title="Elimina">🗑️</button>
+            </form>
+          <?php endif; ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
   </div>
 </div>
 

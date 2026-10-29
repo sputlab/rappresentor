@@ -45,7 +45,7 @@ $currentScript = basename($_SERVER['PHP_SELF']);
     <div style="display: flex; align-items: center; gap: 14px;">
       <button class="mobile-nav-toggle" aria-label="Apri menu">☰</button>
       <a href="index.php" class="brand">
-        <img src="assets/icons/favicon.svg" alt="Logo" width="28" height="28" style="vertical-align: middle;">
+        <img src="assets/icons/icon-squircle.svg" alt="Logo" width="28" height="28" style="vertical-align: middle; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.12);">
         <span>Rappresentor</span>
       </a>
     </div>
@@ -70,8 +70,8 @@ $currentScript = basename($_SERVER['PHP_SELF']);
       </div>
     <?php endif; ?>
 
-    <!-- User Menu & Logout -->
-    <div class="nav-actions">
+    <!-- User Menu & Logout (Visibile solo su Desktop) -->
+    <div class="nav-actions desktop-only">
       <div class="user-pill" title="Ruolo: <?= Helper::e(ucfirst($currentUser['role'])) ?>">
         <div class="user-avatar"><?= strtoupper(substr($currentUser['name'], 0, 1)) ?></div>
         <span style="font-weight: 500;"><?= Helper::e($currentUser['name']) ?></span>
@@ -83,6 +83,26 @@ $currentScript = basename($_SERVER['PHP_SELF']);
   <div class="app-container">
     <!-- Sidebar -->
     <aside class="sidebar">
+      <!-- Profilo Utente & Logout con Icona nel Burger Menu -->
+      <div class="sidebar-user-card mobile-only">
+        <div class="sidebar-user-info">
+          <div class="user-avatar" style="width: 36px; height: 36px; font-size: 0.95rem;">
+            <?= strtoupper(substr($currentUser['name'], 0, 1)) ?>
+          </div>
+          <div class="sidebar-user-details">
+            <span class="sidebar-user-name"><?= Helper::e($currentUser['name']) ?></span>
+            <span class="sidebar-user-role"><?= Helper::e(ucfirst($currentUser['role'])) ?></span>
+          </div>
+        </div>
+        <a href="logout.php" class="sidebar-logout-btn" title="Disconnettiti (Esci)" aria-label="Disconnettiti">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </a>
+      </div>
+
       <!-- Selettore Sezione / Classe Attiva (Visibile su Mobile all'interno del Burger Menu) -->
       <?php if (!empty($allClasses)): ?>
         <div class="sidebar-class-picker mobile-only">

@@ -18,8 +18,8 @@ require_once __DIR__ . '/includes/header.php';
 
 <!-- Header Hero Guida -->
 <div class="guide-header-card">
-  <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap;">
-    <span style="font-size: 2.2rem;">📖</span>
+  <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
+    <img src="assets/icons/icon-192x192.png" alt="Rappresentor Logo" width="64" height="64" style="border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); flex-shrink: 0;">
     <div>
       <h1 style="margin: 0; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.02em;">Guida Ufficiale di Rappresentor</h1>
       <p style="margin: 4px 0 0; opacity: 0.92; font-size: 0.95rem;">
@@ -119,9 +119,12 @@ require_once __DIR__ . '/includes/header.php';
   </p>
 
   <div style="margin: 18px 0; padding: 16px; background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-    <div>
-      <strong style="color: var(--primary); font-size: 1rem;">Sei su un dispositivo supportato?</strong>
-      <div style="font-size: 0.85rem; color: var(--text-secondary);">Puoi avviare subito l'installazione guidata con un clic:</div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <img src="assets/icons/icon-192x192.png" alt="Rappresentor Logo" width="44" height="44" style="border-radius: 10px; box-shadow: var(--shadow-sm); flex-shrink: 0;">
+      <div>
+        <strong style="color: var(--primary); font-size: 1rem;">Sei su un dispositivo supportato?</strong>
+        <div style="font-size: 0.85rem; color: var(--text-secondary);">Puoi avviare subito l'installazione guidata con un clic:</div>
+      </div>
     </div>
     <button type="button" class="btn btn-primary" data-pwa-install>
       📲 Installa Rappresentor Ora

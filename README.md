@@ -1,6 +1,6 @@
 # 🎓 Rappresentor
 
-**Versione Corrente:** `0.7.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
+**Versione Corrente:** `0.8.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
 **Stack Tecnologico:** HTML5 • PHP 8.1+ (Nativo/Zero dipendenze esterne pesanti) • JavaScript (Vanilla Mobile-First & Service Worker) • Progressive Web App (PWA) • MySQL / MariaDB (prefisso tabelle `rappresentor_`)  
 **Modello di Utilizzo:** Micro-SaaS Self-Hosted su dominio proprietario (supporto fino a un massimo di 5 collaboratori attivi in team).
 
@@ -21,7 +21,7 @@ L'applicazione è concepita per essere adatta e modulabile per tutti i gradi sco
 ## 📲 Funzionalità Progressive Web App (PWA)
 
 - **Installabile con un click**: supporto nativo per l'installazione su Android, iOS (Aggiungi a Schermata Home) e Desktop (Chrome/Edge/Safari).
-- **Icona Master & Set Completo**: Master icon SVG (`assets/icons/master-icon.svg`), icone 512x512, 192x192, versioni *Maskable* per Android, `apple-touch-icon.png` per iPhone/iPad e favicon vettoriali.
+- **Nuova Icona Ufficiale & Set Completo PWA**: Nuova icona (`assets/icons/master-icon.png`, `assets/icons/master-icon.svg`), icone 512x512, 192x192, versioni *Maskable* per Android (`icon-maskable-512x512.png`, `icon-maskable-192x192.png`), `apple-touch-icon.png` per iPhone/iPad e favicons multi-risoluzione. Raffigura la collaborazione tra scuola, rappresentante e famiglie con il dialogo continuo della comunità scolastica.
 - **Supporto Offline & Service Worker (`sw.js`)**: caching intelligente degli asset applicativi e pagina di cortesia dedicata ([`offline.html`](file:///Users/stefanosoranzio/Sputlab/WebApps/Rappresentor/offline.html)) nel caso in cui la connessione cada all'interno degli edifici scolastici.
 - **Web App Manifest (`manifest.webmanifest`)**: definisce colori del tema (`#2563eb`), modalità *standalone* a tutto schermo e **scorciatoie rapide** (Alunni, Cassa, WhatsApp, Calendario) accessibili tenendo premuta l'icona dell'app sullo smartphone.
 

@@ -4,6 +4,23 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.8.0] - 2026-10-29
+### Aggiunto
+- **Nuova Icona Ufficiale dell'Applicazione**:
+  - Implementata la nuova icona ufficiale dell'applicazione, raffigurante la scuola, le figure stilizzate del rappresentante di classe e dell'alunno, e il fumetto di dialogo della comunità scuola-famiglia su gradiente ciano-verde smeraldo.
+  - Generato il set completo di icone per tutte le risoluzioni e piattaforme:
+    - Master icon ad altissima definizione (`assets/icons/master-icon.png` a 1024x1024)
+    - Icone standard PWA (`icon-512x512.png` e `icon-192x192.png`)
+    - Versioni *Maskable* per Android con margini di sicurezza per adaptive icon (`icon-maskable-512x512.png` e `icon-maskable-192x192.png`)
+    - Icona per iPhone e iPad (`apple-touch-icon.png` a 180x180)
+    - Favicons multi-risoluzione (`favicon-32x32.png`, `favicon-16x16.png`, `favicon.ico` in root e assets)
+    - Versioni vettoriali SVG per WebApp (`master-icon.svg`, `master-icon-maskable.svg`, `favicon.svg`, `logo.svg`).
+  - Sostituita la nuova icona in tutta l'applicazione: schermate di login, recupero e reimpostazione password, installazione, testata dell'applicazione, banner PWA, guida utente e documentazione.
+
+### Modificato
+- Aggiornato Service Worker PWA (`rappresentor-cache-v0.8.0`) e cache-busting per tutti gli asset grafici.
+- Aggiornata la documentazione in `README.md` e la testata della `guida.php` con la nuova icona ufficiale.
+
 ## [0.7.0] - 2026-10-29
 ### Aggiunto
 - **Modifica Raccolta Quote Esistente (`cassa.php`)**:

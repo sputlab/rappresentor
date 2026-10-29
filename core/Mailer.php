@@ -9,7 +9,7 @@ use Exception;
 /**
  * Gestore invio Email per Rappresentor
  * Supporta SMTP nativo via socket (senza dipendenze esterne) e mail() di PHP.
- * Versione SemVer: 0.1.0
+ * Versione SemVer: 1.2.0
  */
 class Mailer
 {
@@ -198,7 +198,7 @@ class Mailer
         $headers[] = "Date: " . date('r');
         $headers[] = "MIME-Version: 1.0";
         $headers[] = "Content-Type: multipart/alternative; boundary=\"{$boundary}\"";
-        $headers[] = "X-Mailer: Rappresentor/0.1.0";
+        $headers[] = "X-Mailer: Rappresentor/1.2.0";
 
         $message = implode("\r\n", $headers) . "\r\n\r\n";
         $message .= "--{$boundary}\r\n";
@@ -224,12 +224,39 @@ class Mailer
     }
 
     /**
+     * Risolve l'URL pubblico assoluto dell'icona ufficiale dell'applicazione per i template email
+     */
+    private function getLogoUrl(string $actionLink = ''): string
+    {
+        if (!empty($actionLink)) {
+            $parsed = parse_url($actionLink);
+            if (!empty($parsed['scheme']) && !empty($parsed['host'])) {
+                $basePath = !empty($parsed['path']) ? dirname($parsed['path']) : '';
+                if ($basePath === '/' || $basePath === '\\' || $basePath === '.') {
+                    $basePath = '';
+                }
+                $port = !empty($parsed['port']) ? ':' . $parsed['port'] : '';
+                return "{$parsed['scheme']}://{$parsed['host']}{$port}{$basePath}/assets/icons/master-icon.png";
+            }
+        }
+
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scriptDir = isset($_SERVER['SCRIPT_NAME']) ? dirname($_SERVER['SCRIPT_NAME']) : '';
+        if ($scriptDir === '/' || $scriptDir === '\\' || $scriptDir === '.') {
+            $scriptDir = '';
+        }
+        return "{$protocol}://{$host}{$scriptDir}/assets/icons/master-icon.png";
+    }
+
+    /**
      * Genera template email HTML moderno e responsive per reset password
      */
     public function sendPasswordResetEmail(string $toEmail, string $userName, string $resetLink): bool
     {
         $appName = $this->settings['app_name'] ?? 'Rappresentor';
         $subject = "Recupero password - {$appName}";
+        $logoUrl = $this->getLogoUrl($resetLink);
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -240,7 +267,8 @@ class Mailer
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 24px; color: #1e293b; }
     .card { max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .header { text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 24px; }
-    .header h1 { font-size: 22px; color: #2563eb; margin: 0; }
+    .header-logo { width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 12px; display: inline-block; vertical-align: middle; }
+    .header h1 { font-size: 22px; color: #1e293b; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
     .content p { line-height: 1.6; font-size: 15px; color: #334155; }
     .btn-container { text-align: center; margin: 30px 0; }
     .btn { background-color: #2563eb; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; display: inline-block; font-size: 15px; }
@@ -251,7 +279,8 @@ class Mailer
 <body>
   <div class="card">
     <div class="header">
-      <h1>🎓 {$appName}</h1>
+      <img src="{$logoUrl}" alt="{$appName}" class="header-logo" width="64" height="64">
+      <h1>{$appName}</h1>
     </div>
     <div class="content">
       <p>Ciao <strong>{$userName}</strong>,</p>
@@ -281,6 +310,7 @@ HTML;
     {
         $appName = $this->settings['app_name'] ?? 'Rappresentor';
         $subject = "Sei stato invitato su {$appName}";
+        $logoUrl = $this->getLogoUrl($loginLink);
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -291,7 +321,8 @@ HTML;
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 24px; color: #1e293b; }
     .card { max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .header { text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 24px; }
-    .header h1 { font-size: 22px; color: #2563eb; margin: 0; }
+    .header-logo { width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 12px; display: inline-block; vertical-align: middle; }
+    .header h1 { font-size: 22px; color: #1e293b; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
     .content p { line-height: 1.6; font-size: 15px; color: #334155; }
     .credentials { background: #f1f5f9; border-left: 4px solid #2563eb; padding: 14px 18px; margin: 20px 0; border-radius: 4px; }
     .btn-container { text-align: center; margin: 30px 0; }
@@ -302,7 +333,8 @@ HTML;
 <body>
   <div class="card">
     <div class="header">
-      <h1>🎓 {$appName}</h1>
+      <img src="{$logoUrl}" alt="{$appName}" class="header-logo" width="64" height="64">
+      <h1>{$appName}</h1>
     </div>
     <div class="content">
       <p>Ciao <strong>{$userName}</strong>,</p>

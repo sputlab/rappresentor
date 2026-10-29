@@ -4,6 +4,24 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.2.0] - 2026-10-29
+### Aggiunto
+- **Traduzioni Multilingua Istantanee nei Messaggi WhatsApp (`comunicazioni.php`, `api/translate.php`)**:
+  - Introdotto pannello di selezione multilingua con supporto per 6 lingue: 🇬🇧 Inglese (`en`), 🇷🇴 Rumeno (`ro`), 🇭🇷 Croato (`hr`), 🇦🇱 Albanese (`sq`), 🇧🇩 Bengalese (`bn`), 🇹🇷 Turco (`tr`).
+  - Attivazione e disattivazione tramite checkbox intuitive corredate di bandierina e nome della lingua.
+  - Ordinamento cronologico dinamico: le traduzioni vengono posizionate in calce al testo italiano nell'ordine esatto in cui i relativi flag vengono spuntati dall'utente.
+  - Ciascuna traduzione presenta intestazione dedicata con bandierina (es. `🌐 TRADUZIONE INGLESE 🇬🇧`, `🌐 TRADUZIONE RUMENO 🇷🇴`) e separatore visivo elegante (`══════════════════════════`).
+  - Endpoint API dedicato (`api/translate.php`) con autenticazione utente, verifica token CSRF, gestione avanzata dei paragrafi per preservare la formattazione WhatsApp (*grassetto*, elenchi, emoji) e cache di sessione per minimizzare le richieste verso il servizio di traduzione esterno MyMemory.
+  - Sincronizzazione automatica bidirezionale tra modifiche al testo italiano (anche derivanti da autocompilazione da eventi calendario) e ritraduzione istantanea di tutte le lingue attive.
+- **Icona Ufficiale dell'Applicazione Integrata Globalmente**:
+  - **Email Transazionali (`core/Mailer.php`)**: sostituita l'emoji generica `🎓` nelle email di reimpostazione password e invito collaboratori con l'icona master ufficiale ad alta risoluzione (`master-icon.png`) con angoli arrotondati, ombra e link all'applicazione.
+  - **Documentazione (`guida.php`)**: integrate le icone master vettoriali SVG ad altissima definizione (`master-icon.svg`) nella testata della guida e nel box di installazione PWA; aggiornata la guida con le istruzioni sull'uso delle traduzioni multilingua e sulla gestione modifiche alunni e contatti famiglia.
+  - **README (`README.md`)**: integrata l'icona ufficiale SVG nella testata del progetto e documentate le nuove funzionalità introdotte.
+
+### Modificato & Ottimizzato
+- **Aggiornamento Cache PWA (`sw.js`)**: incrementata la versione cache a `rappresentor-cache-v1.2.0` e aggiunti `master-icon.svg` e `master-icon.png` al precache per garantire l'aggiornamento immediato su tutti i dispositivi mobile e desktop installati.
+- **Bumping Versione SemVer a 1.2.0**: aggiornati `VERSION`, `includes/init.php`, `install.php`, `database/schema.sql`, `core/Mailer.php`, `core/Helper.php`, `sw.js`, `README.md`.
+
 ## [1.1.0] - 2026-10-29
 ### Aggiunto
 - **Modifica Anagrafica Alunni (`alunni.php`)**:

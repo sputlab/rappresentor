@@ -1,6 +1,6 @@
-# 🎓 Rappresentor
+# <img src="assets/icons/master-icon.svg" alt="Rappresentor Logo" width="40" height="40" style="vertical-align: middle; border-radius: 8px;"> Rappresentor
 
-**Versione Corrente:** `1.1.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
+**Versione Corrente:** `1.2.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
 **Stack Tecnologico:** HTML5 • PHP 8.1+ (Nativo/Zero dipendenze esterne pesanti) • JavaScript (Vanilla Mobile-First & Service Worker) • Progressive Web App (PWA) • MySQL / MariaDB (prefisso tabelle `rappresentor_`)  
 **Modello di Utilizzo:** Micro-SaaS Self-Hosted su dominio proprietario (supporto fino a un massimo di 5 collaboratori attivi in team).
 
@@ -38,6 +38,8 @@ L'applicazione è concepita per essere adatta e modulabile per tutti i gradi sco
 
 ### 1. 🎒 Anagrafica Alunni & Famiglie (Rubrica WhatsApp)
 - Elenco alunni con calcolo automatico dell'età e gestione **allergie/intolleranze alimentari** (cruciali per feste e merende).
+- Modifica completa dei dati dell'alunno in qualsiasi momento tramite modale interattivo dedicato.
+- **Gestione Contatti Famiglia**: aggiunta, modifica ed eliminazione puntuale di ciascun contatto con indicazione della parentela (Mamma, Papà, Tutore, Nonna, Nonno).
 - Rubrica genitori/tutori con indicazione del contatto principale e flag consenso WhatsApp.
 - **Pulsante rapido WhatsApp (`wa.me`)** per aprire subito la chat con il genitore senza dover salvare il numero in rubrica.
 - **Generatore Rubrica WhatsApp**: estrae e formatta tutti i numeri cellulari della classe per creare rapidamente il gruppo WhatsApp o una lista broadcast.
@@ -50,6 +52,8 @@ L'applicazione è concepita per essere adatta e modulabile per tutti i gradi sco
 - **Generatore Rendiconto WhatsApp**: un clic per generare e copiare un report trasparente del saldo cassa e delle ultime spese da inviare sulla chat dei genitori.
 
 ### 3. 📢 Bacheca Comunicazioni & WhatsApp Template Builder
+- **🌐 Traduzioni Multilingua Istantanee**: traduzione immediata del messaggio per famiglie straniere in 🇬🇧 Inglese, 🇷🇴 Rumeno, 🇭🇷 Croato, 🇦🇱 Albanese, 🇧🇩 Bengalese e 🇹🇷 Turco, attivabili con flag e ordinate cronologicamente in coda al testo italiano con bandierine e separatori grafici.
+- **Autocompilazione da Calendario**: compilazione istantanea con un clic per gite scolastiche (destinazione, orari ritrovo/rientro, quota, programma) e riunioni/consigli di classe.
 - Modelli predefiniti per le situazioni più frequenti:
   - Raccolta quote fondo cassa
   - Promemoria scadenza versamenti
@@ -63,6 +67,7 @@ L'applicazione è concepita per essere adatta e modulabile per tutti i gradi sco
 
 ### 4. 📅 Calendario & Scadenze
 - Promemoria per riunioni, uscite didattiche, scadenze PagoPA, feste e compleanni.
+- **Layout Mobile Ottimizzato**: schede evento a tutta larghezza con bordi identificativi cromatici, azioni rapide ed eliminazione degli spazi vuoti su smartphone.
 - Widget laterale con i compleanni degli alunni del mese corrente per coordinare per tempo gli auguri o la festa comune.
 
 ### 5. 📋 Consigli d'Interclasse / Classe (Quaderno delle Note)

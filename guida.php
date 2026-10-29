@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/header.php';
 <!-- Header Hero Guida -->
 <div class="guide-header-card">
   <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
-    <img src="assets/icons/icon-192x192.png" alt="Rappresentor Logo" width="64" height="64" style="border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); flex-shrink: 0;">
+    <img src="assets/icons/master-icon.svg" alt="Rappresentor Logo" width="64" height="64" style="border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); flex-shrink: 0;">
     <div>
       <h1 style="margin: 0; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.02em;">Guida Ufficiale di Rappresentor</h1>
       <p style="margin: 4px 0 0; opacity: 0.92; font-size: 0.95rem;">
@@ -120,7 +120,7 @@ require_once __DIR__ . '/includes/header.php';
 
   <div style="margin: 18px 0; padding: 16px; background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="assets/icons/icon-192x192.png" alt="Rappresentor Logo" width="44" height="44" style="border-radius: 10px; box-shadow: var(--shadow-sm); flex-shrink: 0;">
+      <img src="assets/icons/master-icon.svg" alt="Rappresentor Logo" width="44" height="44" style="border-radius: 10px; box-shadow: var(--shadow-sm); flex-shrink: 0;">
       <div>
         <strong style="color: var(--primary); font-size: 1rem;">Sei su un dispositivo supportato?</strong>
         <div style="font-size: 0.85rem; color: var(--text-secondary);">Puoi avviare subito l'installazione guidata con un clic:</div>
@@ -268,8 +268,8 @@ require_once __DIR__ . '/includes/header.php';
     La sezione <strong>Alunni</strong> costituisce il cuore informativo della classe:
   </p>
   <ul style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.8;">
-    <li><strong>Scheda Alunno Completa:</strong> nome, cognome, data di nascita con calcolo automatico dell'età (mesi per il nido, anni per le altre classi), note e soprattutto il campo critico <strong>Allergie & Intolleranze</strong> (evidenziato con badge d'allerta per feste e merende).</li>
-    <li><strong>Genitori & Tutori:</strong> recapiti telefonici, email e indicazione del contatto principale della famiglia.</li>
+    <li><strong>Scheda Alunno Completa & Modifica:</strong> nome, cognome, data di nascita con calcolo automatico dell'età (mesi per il nido, anni per le altre classi), note e soprattutto il campo critico <strong>Allergie & Intolleranze</strong> (evidenziato con badge d'allerta per feste e merende). Tutti i dati dell'alunno possono essere modificati in ogni momento tramite il pulsante <strong>✏️ Modifica</strong>.</li>
+    <li><strong>Gestione Contatti Famiglia:</strong> recapiti telefonici, email e grado di parentela (Mamma, Papà, Tutore, Nonna, Nonno). Puoi aggiungere nuovi contatti con <strong>+ Contatto</strong>, aggiornarli con <strong>✏️</strong> o rimuoverli con <strong>🗑️</strong> con conferma rapida.</li>
     <li><strong>Consenso WhatsApp:</strong> flag esplicito per la conformità alla privacy sull'inserimento nel gruppo genitori.</li>
     <li><strong>Pulsante Chat Rapida (<code>wa.me</code>):</strong> tocca l'icona verde WhatsApp accanto al nome del genitore per avviare subito una chat privata senza dover salvare il numero nella rubrica personale del telefono.</li>
     <li><strong>📱 Copia Rubrica WhatsApp:</strong> clicca sul pulsante verde in cima alla pagina per copiare in un colpo solo tutti i numeri dei genitori consenzienti formattati internazionalmente (+39), pronti da incollare per creare il gruppo WhatsApp o una lista broadcast.</li>
@@ -345,15 +345,17 @@ require_once __DIR__ . '/includes/header.php';
 <section id="bacheca-whatsapp" class="guide-section-card">
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
     <h2 style="margin: 0; font-size: 1.35rem; color: var(--primary);">
-      📢 8. Bacheca WhatsApp & Modelli Dinamici
+      📢 8. Bacheca WhatsApp, Modelli & Traduzioni Multilingua
     </h2>
     <span class="badge" style="background:#25D366; color:#fff;">Comunicazione 1-Click</span>
   </div>
 
   <p style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6;">
-    Comunicare con decine di famiglie su WhatsApp non è mai stato così veloce e professionale:
+    Comunicare con decine di famiglie su WhatsApp non è mai stato così veloce, inclusivo e professionale:
   </p>
   <ul style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7;">
+    <li><strong>🌐 Traduzioni Multilingua Integrate:</strong> attiva con un clic tramite comodi checkbox le traduzioni per <strong>🇬🇧 Inglese</strong>, <strong>🇷🇴 Rumeno</strong>, <strong>🇭🇷 Croato</strong>, <strong>🇦🇱 Albanese</strong>, <strong>🇧🇩 Bengalese</strong> e <strong>🇹🇷 Turco</strong>. Le traduzioni vengono generate istantaneamente preservando la formattazione WhatsApp (*grassetto*, elenchi, emoji) e appese al messaggio italiano nell'ordine esatto di attivazione cronologica, separate da divisori visivi eleganti.</li>
+    <li><strong>Autocompilazione da Calendario:</strong> seleziona uscite didattiche o riunioni già inserite nel calendario per popolare all'istante date, luoghi, orari di ritrovo/rientro, quote e scadenze.</li>
     <li><strong>Tutte le Quote Attive Incluse:</strong> i modelli per le quote raggruppano <strong>tutte le campagne attualmente aperte</strong> per la classe, formattando titolo, quota per ciascuna voce e calcolando la somma complessiva richiesta ad alunno.</li>
     <li><strong>Pulsante "📱 Avviso Quote WA" in Cassa:</strong> ti basta un tocco sul pulsante verde nella pagina Cassa per visualizzare e copiare l'avviso pronto per il gruppo WhatsApp.</li>
     <li><strong>Pulsante "📱 Copia Rendiconto WA":</strong> genera istantaneamente un report trasparente con saldo attuale, totale entrate, totale uscite e ultime 5 spese con scontrino da condividere con i genitori.</li>
@@ -378,6 +380,7 @@ require_once __DIR__ . '/includes/header.php';
   <ul style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7;">
     <li>Tracciamento scadenze per <strong>PagoPA / Contributo scolastico</strong>, assemblee con i docenti, consigli di classe, uscite didattiche e feste.</li>
     <li>Visualizzazione cronologica con conteggio dei giorni mancanti (es. <em>Tra 3 giorni</em>, <em>Oggi</em>).</li>
+    <li>Layout ottimizzato a tutta larghezza per dispositivi mobili, con badge categoria cromatici e comandi rapidi per una consultazione immediata anche con una sola mano.</li>
   </ul>
 
   <div id="consigli-interclasse" style="margin-top: 24px; padding-top: 18px; border-top: 1px dashed var(--border-color);">

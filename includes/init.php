@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Inizializzazione applicativa di base
- * Versione SemVer: 1.2.0
+ * Versione SemVer: 1.3.0
  */
 
 // Avvia output buffering per prevenire problemi di headers already sent con redirect HTTP

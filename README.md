@@ -1,6 +1,6 @@
 # <img src="assets/icons/master-icon.svg" alt="Rappresentor Logo" width="40" height="40" style="vertical-align: middle; border-radius: 8px;"> Rappresentor
 
-**Versione Corrente:** `1.2.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
+**Versione Corrente:** `1.3.0` (Aderente a [Semantic Versioning 2.0.0](https://semver.org/lang/it/))  
 **Stack Tecnologico:** HTML5 • PHP 8.1+ (Nativo/Zero dipendenze esterne pesanti) • JavaScript (Vanilla Mobile-First & Service Worker) • Progressive Web App (PWA) • MySQL / MariaDB (prefisso tabelle `rappresentor_`)  
 **Modello di Utilizzo:** Micro-SaaS Self-Hosted su dominio proprietario (supporto fino a un massimo di 5 collaboratori attivi in team).
 
@@ -34,6 +34,7 @@ L'applicazione è concepita per essere adatta e modulabile per tutti i gradi sco
 - **Slide-Over Drawer**: menu laterale a scomparsa per le funzioni avanzate e le impostazioni su schermi piccoli.
 - **Target Touch Ergonomici**: tutti i pulsanti e gli input rispettano le linee guida di accessibilità touch (minimo 44px di altezza) con font a 16px per evitare lo sgradevole auto-zoom di Safari su iPhone.
 - **Supporto Safe Area**: gestione integrata dei bordi arrotondati e barre di sistema dei moderni dispositivi mobili (`env(safe-area-inset-bottom)`).
+- **Sistema Dialoghi & Avvisi Personalizzati (No Popup Nativi)**: finestre modali di conferma ed alert moderne con grafica nativa dell'applicazione, icone animate di stato (pericolo, avviso, info, successo), supporto tastiera (Esc/Enter) e layout touch ottimizzato per mobile.
 - **Progressive Enhancement su Desktop**: su schermi larghi la barra inferiore scompare automaticamente, trasformandosi in una sidebar completa a due o tre colonne.
 
 ### 1. 🎒 Anagrafica Alunni & Famiglie (Rubrica WhatsApp)

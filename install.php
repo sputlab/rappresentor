@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Rappresentor - Installatore Guidato Web & Setup Iniziale
- * Versione SemVer: 1.2.0
+ * Versione SemVer: 1.3.0
  */
 
 $configFile = __DIR__ . '/config/config.php';
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "return [\n" .
                     "    'app' => [\n" .
                     "        'name' => 'Rappresentor',\n" .
-                    "        'version' => '1.2.0',\n" .
+                    "        'version' => '1.3.0',\n" .
                     "        'env' => 'production'\n" .
                     "    ],\n" .
                     "    'db' => [\n" .
@@ -235,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Setup Iniziale - Rappresentor v1.2.0</title>
+  <title>Setup Iniziale - Rappresentor v1.3.0</title>
 
   <!-- PWA Manifest & Icons -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -268,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <h1>
         <img src="assets/icons/favicon.svg" alt="Logo" width="32" height="32" style="vertical-align: middle;">
         <span>Rappresentor</span>
-        <span style="font-size:0.75rem; background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:99px;">v1.2.0</span>
+        <span style="font-size:0.75rem; background:rgba(255,255,255,0.25); padding:2px 8px; border-radius:99px;">v1.3.0</span>
       </h1>
       <p>Configurazione e Inizializzazione della Piattaforma</p>
     </div>

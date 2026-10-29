@@ -7,7 +7,7 @@ use PDO;
 
 /**
  * Funzioni di supporto, formattazione, CSRF e sessioni
- * Versione SemVer: 1.2.0
+ * Versione SemVer: 1.3.0
  */
 class Helper
 {
@@ -501,7 +501,7 @@ class Helper
         if (file_exists($versionFile)) {
             return trim(file_get_contents($versionFile));
         }
-        return '1.2.0';
+        return '1.3.0';
     }
 
     /**

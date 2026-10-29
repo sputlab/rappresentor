@@ -4,6 +4,26 @@ Tutti i cambiamenti degni di nota a questo progetto saranno documentati in quest
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.0.0/),
 e questo progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [1.3.0] - 2026-10-29
+### Aggiunto
+- **Sistema Completo di Dialoghi, Avvisi e Conferme Grafiche (`AppDialog`, `assets/js/app.js`, `assets/css/style.css`)**:
+  - Eliminati tutti i popup grigi e nativi del browser (`window.alert`, `window.confirm`, `window.prompt` e `onsubmit="return confirm(...)"`) a favore di finestre modali moderne, eleganti e perfettamente integrate con l'identità visiva della WebApp.
+  - Backdrop oscurato con effetto sfocato moderno (`backdrop-filter: blur(6px)`), animazione pop-in fluida e z-index prioritario per sovrastare qualsiasi drawer o elemento dell'interfaccia.
+  - Badge circolare tematico con icona animata contestuale per 4 tipologie distinte: `danger` (🗑️ rosso per eliminazioni), `warning` (⚠️ ambra per conferme e cautele), `info` (ℹ️ blu per notifiche) e `success` (✅ verde per conferme positive).
+  - Layout mobile responsive: su smartphone (< 480px) i pulsanti si dispongono verticalmente in ordine ergonomico (azione principale in alto, annulla in basso) con area touch garantita di almeno 44px; su desktop si affiancano armoniosamente.
+  - Accessibilità e controllo da tastiera: supporto nativo per annullare con `Escape`, confermare con `Enter`, intrappolamento del focus e blocco dello scroll del documento.
+  - Supporto per prompt con campo input stilizzato e pulsanti dedicati.
+  - Intercettazione automatica dichiarativa: tutti i form e gli elementi con `data-confirm` attivano istantaneamente il nuovo modale, con supporto per titoli (`data-confirm-title`), tipologia (`data-confirm-type`), e testi pulsanti (`data-confirm-btn`, `data-confirm-cancel`).
+  - Fallback preventivo per form dinamici: qualsiasi form legacy con `onsubmit="return confirm(...)"` viene automaticamente intercettato e convertito in volo al nuovo sistema grafico.
+- **Miglioramento Toast Fluttuanti**:
+  - Aggiunte icone di stato dedicate (`✅`, `❌`, `⚠️`, `ℹ️`) e bordi identificativi cromatici a sinistra per i tipi `success`, `danger`, `warning` e `info`.
+- **Migrazione Completa Template PHP**:
+  - Aggiornati tutti i form di eliminazione e modifica in `alunni.php`, `calendario.php`, `cassa.php`, `classi.php`, `consigli.php` e `utenti.php` con attributi semantici `data-confirm`.
+
+### Modificato & Ottimizzato
+- **Aggiornamento Cache PWA (`sw.js`)**: incrementata la versione cache a `rappresentor-cache-v1.3.0` per sincronizzare immediatamente il nuovo motore di dialoghi e gli stili aggiornati su tutti i dispositivi con PWA installata.
+- **Bumping Versione SemVer a 1.3.0**: aggiornati `VERSION`, `includes/init.php`, `install.php`, `database/schema.sql`, `core/Mailer.php`, `core/Helper.php`, `sw.js`, `README.md`.
+
 ## [1.2.0] - 2026-10-29
 ### Aggiunto
 - **Traduzioni Multilingua Istantanee nei Messaggi WhatsApp (`comunicazioni.php`, `api/translate.php`)**:

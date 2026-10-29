@@ -9,7 +9,7 @@ use Exception;
 /**
  * Gestore invio Email per Rappresentor
  * Supporta SMTP nativo via socket (senza dipendenze esterne) e mail() di PHP.
- * Versione SemVer: 1.2.0
+ * Versione SemVer: 1.3.0
  */
 class Mailer
 {
@@ -198,7 +198,7 @@ class Mailer
         $headers[] = "Date: " . date('r');
         $headers[] = "MIME-Version: 1.0";
         $headers[] = "Content-Type: multipart/alternative; boundary=\"{$boundary}\"";
-        $headers[] = "X-Mailer: Rappresentor/1.2.0";
+        $headers[] = "X-Mailer: Rappresentor/1.3.0";
 
         $message = implode("\r\n", $headers) . "\r\n\r\n";
         $message .= "--{$boundary}\r\n";
